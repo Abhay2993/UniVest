@@ -1,5 +1,7 @@
 import {
+  ActivityItem,
   AuctionWindowData,
+  ExitedPosition,
   PortfolioPosition,
   Startup,
   SyndicateInfo,
@@ -364,4 +366,62 @@ export const SYNDICATES: SyndicateInfo[] = [
   { id: 'sy1', name: 'The Engine Ventures', thesis: 'Tough-tech spinouts from the MIT ecosystem', verified: true },
   { id: 'sy2', name: 'ETH Foundry Fund', thesis: 'Swiss deep-tech: quantum, robotics, climate', verified: true },
   { id: 'sy3', name: 'Oxford Science Enterprises', thesis: 'Life sciences and frontier computing out of Oxford', verified: true },
+];
+
+// ----------------------------------------------------------------------------
+// Realized exits (distribution waterfall demo)
+// ----------------------------------------------------------------------------
+export const EXITED_POSITIONS: ExitedPosition[] = [
+  {
+    id: 'e1',
+    startupName: 'Corvid Photonics',
+    spvName: 'UniVest SPV Series 007',
+    exitKind: 'Acquisition by a defense prime',
+    exitedOn: '2026-05-28',
+    units: 200,
+    costBasis: 2_000,
+    grossProceeds: 5_200,
+    carryPct: 15,
+  },
+];
+
+// ----------------------------------------------------------------------------
+// Activity feed (server-push lands here in production)
+// ----------------------------------------------------------------------------
+export const ACTIVITY_ITEMS: ActivityItem[] = [
+  {
+    id: 'n1',
+    kind: 'distribution',
+    title: 'Distribution paid — Corvid Photonics',
+    body: 'Your net proceeds of $4,720.00 from the Series 007 exit have been sent to your linked account. Statement available in your portfolio.',
+    date: '2026-07-14T09:20:00Z',
+  },
+  {
+    id: 'n2',
+    kind: 'auction_cleared',
+    title: 'Liquidity window cleared at $12.38',
+    body: 'The June window for UniVest SPV Series 042 crossed 300 units at a uniform price of $12.38 — a new NAV reference mark.',
+    date: '2026-07-12T16:05:00Z',
+  },
+  {
+    id: 'n3',
+    kind: 'milestone_attested',
+    title: 'Milestone attested — Vasca Bio',
+    body: 'Phase I regulatory clearance was independently signed by Oxford University Innovation (key 66E1·B3A7).',
+    date: '2026-07-10T11:32:00Z',
+  },
+  {
+    id: 'n4',
+    kind: 'closing_soon',
+    title: 'Vasca Bio closes in 6 days',
+    body: 'The offering is 93.1% subscribed. Cancellation remains available until 48 hours before close.',
+    date: '2026-07-09T08:00:00Z',
+  },
+  {
+    id: 'n5',
+    kind: 'tax_document',
+    title: 'Schedule K-1 available',
+    body: 'Your 2025 K-1 for UniVest SPV Series 042 is ready in the Document Vault.',
+    date: '2026-03-12T14:45:00Z',
+  },
 ];

@@ -543,8 +543,9 @@ CREATE TABLE tax_documents (
 
 -- Unrealized position metrics from the latest NAV mark (IRR/TVPI with
 -- distributions are computed by the analytics service, which also has the
--- cash-flow dates).
-CREATE VIEW investor_position_metrics AS
+-- cash-flow dates). security_invoker: spv_holdings RLS must filter for the
+-- querying user rather than the view owner.
+CREATE VIEW investor_position_metrics WITH (security_invoker = true) AS
 SELECT h.user_id,
        h.spv_id,
        h.units,
@@ -642,7 +643,9 @@ CREATE TABLE suitability_acknowledgements (
 
 -- Rolling single-position exposure as % of each investor's annual limit —
 -- the concentration-warning engine reads this before accepting an order.
-CREATE VIEW investor_concentration AS
+-- security_invoker: RLS on investments must apply to the querying user,
+-- not the view owner (who would bypass it).
+CREATE VIEW investor_concentration WITH (security_invoker = true) AS
 SELECT i.investor_id,
        i.campaign_id,
        SUM(i.amount)                                        AS committed,

@@ -23,6 +23,8 @@ export interface Commitment {
   committedAt: string;
   closesAt: string;
   cancellableUntil: string;
+  /** Typed legal name from the subscription-agreement e-signature. */
+  signerName?: string;
 }
 
 interface PortfolioValue {
@@ -30,10 +32,14 @@ interface PortfolioValue {
   getCommitment: (startupId: string) => Commitment | undefined;
   /** Total currently committed across all offerings (rolling exposure). */
   totalCommitted: number;
-  commit: (startup: Startup, amount: number) => void;
+  commit: (startup: Startup, amount: number, signerName?: string) => void;
   cancel: (startupId: string) => void;
-  /** Single-position exposure (existing + proposed) as % of the annual limit. */
-  exposurePct: (startupId: string, proposedAmount: number) => number;
+  /**
+   * Single-position exposure (existing + proposed) as % of the annual limit.
+   * Pass the investor's real limit from their profile; falls back to the
+   * demo default for guests.
+   */
+  exposurePct: (startupId: string, proposedAmount: number, annualLimit?: number) => number;
 }
 
 const PortfolioContext = createContext<PortfolioValue>({
@@ -62,7 +68,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
-  const commit = useCallback((startup: Startup, amount: number) => {
+  const commit = useCallback((startup: Startup, amount: number, signerName?: string) => {
     const now = Date.now();
     const closesAt = now + startup.daysLeft * 86_400_000;
     const entry: Commitment = {
@@ -71,6 +77,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
       committedAt: new Date(now).toISOString(),
       closesAt: new Date(closesAt).toISOString(),
       cancellableUntil: new Date(closesAt - COOLING_OFF_HOURS * 3_600_000).toISOString(),
+      signerName,
     };
     setCommitments((prev) => {
       const next = { ...prev, [startup.id]: entry };
@@ -99,9 +106,9 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
       totalCommitted,
       commit,
       cancel,
-      exposurePct: (startupId, proposedAmount) => {
+      exposurePct: (startupId, proposedAmount, annualLimit = ANNUAL_INVESTMENT_LIMIT) => {
         const existing = commitments[startupId]?.amount ?? 0;
-        return ((existing + proposedAmount) / ANNUAL_INVESTMENT_LIMIT) * 100;
+        return ((existing + proposedAmount) / annualLimit) * 100;
       },
     };
   }, [commitments, commit, cancel]);

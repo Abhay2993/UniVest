@@ -6,6 +6,7 @@ import { Vertical } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatMoney, formatMoneyCompact } from '../utils/format';
+import { TTOPortalScreen } from './TTOPortalScreen';
 
 const AUTOINVEST_KEY = 'univest.autoinvest.v1';
 const BUDGET_PRESETS = [100, 250, 500, 1_000];
@@ -24,9 +25,16 @@ const DEFAULT_PREFS: AutoInvestPrefs = {
   followedSyndicates: [],
 };
 
-/** Tools tab: deep-tech DCA for investors, cap-table simulator for founders. */
+/** Tools tab: deep-tech DCA for investors, cap-table simulator for founders,
+ *  and the University Portal for TTO officers. */
 export function ToolsScreen() {
   const s = useThemedStyles(makeStyles);
+  const [portalOpen, setPortalOpen] = useState(false);
+
+  if (portalOpen) {
+    return <TTOPortalScreen onClose={() => setPortalOpen(false)} />;
+  }
+
   return (
     <ScrollView style={s.screen} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
       <View style={s.hero}>
@@ -39,6 +47,23 @@ export function ToolsScreen() {
 
       <AutoInvestCard />
       <CapTableSimulator />
+
+      <Pressable
+        style={s.portalCard}
+        onPress={() => setPortalOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Open the university portal for TTO officers"
+      >
+        <View style={s.portalLeft}>
+          <Text style={s.portalOverline}>FOR TTO OFFICERS</Text>
+          <Text style={s.portalTitle}>University Portal</Text>
+          <Text style={s.portalHint}>
+            Launch a raise from standardized templates · publish milestone updates · sign
+            attestations with your registered key
+          </Text>
+        </View>
+        <Text style={s.portalArrow}>→</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -433,5 +458,32 @@ const makeStyles = (c: Palette) => {
     legendValue: { ...T.financial, fontSize: 13, fontWeight: '600' },
 
     footnote: { ...T.caption, fontSize: 10, marginTop: space.md },
+
+    portalCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.navy,
+      borderRadius: radius.md,
+      padding: space.lg,
+      marginHorizontal: space.md,
+      marginBottom: space.md,
+    },
+    portalLeft: { flex: 1, paddingRight: space.md },
+    portalOverline: {
+      fontFamily: font.sans,
+      fontSize: 9,
+      letterSpacing: 1.6,
+      color: c.gold,
+      marginBottom: space.xs,
+    },
+    portalTitle: { fontFamily: font.serif, fontSize: 20, color: c.onNavy },
+    portalHint: {
+      fontFamily: font.sans,
+      fontSize: 11,
+      lineHeight: 17,
+      color: c.onNavyMuted,
+      marginTop: space.xs,
+    },
+    portalArrow: { fontFamily: font.serif, fontSize: 22, color: c.gold },
   });
 };

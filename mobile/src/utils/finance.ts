@@ -72,6 +72,24 @@ export function tvpi(currentValue: number, distributions: number, paidIn: number
   return (currentValue + distributions) / paidIn;
 }
 
+/**
+ * Reg CF annual investment limit (post-2021 SEC thresholds):
+ * if either annual income or net worth ≥ $124,000 → 10% of the greater,
+ * capped at $124,000; otherwise the greater of $2,500 or 5% of the greater.
+ * The backend applies the same formula server-side; this mirror powers the
+ * onboarding result screen.
+ */
+export function computeInvestmentLimit(annualIncome: number, netWorth: number): number {
+  const THRESHOLD = 124_000;
+  const CAP = 124_000;
+  const FLOOR = 2_500;
+  const greater = Math.max(annualIncome, netWorth);
+  if (annualIncome >= THRESHOLD || netWorth >= THRESHOLD) {
+    return Math.min(Math.round(greater * 0.1), CAP);
+  }
+  return Math.max(FLOOR, Math.round(greater * 0.05));
+}
+
 export interface BookOrder {
   side: 'buy' | 'sell';
   units: number;

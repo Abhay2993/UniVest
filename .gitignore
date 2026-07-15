@@ -5,6 +5,7 @@ package-lock.json
 dist/
 *.tsbuildinfo
 npm-debug.log*
+.env
 
 # OS
 .DS_Store

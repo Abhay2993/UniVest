@@ -16,7 +16,9 @@ framework.
 | --- | --- |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System architecture diagrams (component + investment sequence flow) and security model |
 | [`backend/db/schema.sql`](backend/db/schema.sql) | PostgreSQL schema — users, startups, campaigns, investments, SPVs, secondary trades, revenue ledger, Row-Level Security policies |
-| [`mobile/`](mobile/) | React Native (TypeScript, Expo) app — Global Discovery Feed, interactive Research Map, Visual Milestone Tracker, watchlists with closing-soon alerts |
+| [`backend/db/seed.sql`](backend/db/seed.sql) | Demo seed: API role + grants, live campaign, SPV with holdings/valuations, open auction window |
+| [`backend/api/`](backend/api/) | NestJS API — offerings, investments (with Reg CF limit + cooling-off), portfolio, batch auctions, Q&A, KYC webhook; every query runs under the caller's RLS identity |
+| [`mobile/`](mobile/) | React Native (TypeScript, Expo) app — onboarding/KYC/suitability, Discovery + Research Map, Milestone Tracker, Portfolio analytics, Markets, Tools, TTO Portal |
 
 ## Core Modules
 
@@ -90,6 +92,50 @@ framework.
   stacked bar.
 - **University Leaderboard** — institutions ranked by on-platform capital
   with milestone attestation rates (`university_leaderboard` view).
+- **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
+  verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
+  with explanations) → income/net-worth bands compute the real Reg CF annual
+  limit that gates investing; guests may browse but the invest CTA requires
+  verification.
+- **TTO/University Portal** (Tools tab) — click-and-agree USIT / US-BOLT
+  launch wizard, milestone update composer with micro-video attach, and the
+  Attestation Desk: review the evidence bundle and sign completed milestones
+  with the officer's registered key.
+- **Distribution waterfall** — realized exits show gross proceeds → return of
+  capital → profit → 15% carry → net-to-you, with net multiple.
+- **Activity Inbox** — persistent feed of attestations, auction clearings,
+  K-1s, closing reminders, and distributions, with unread tracking.
+- **Deal comparison** — up to three offerings side-by-side (subscription,
+  attestation rate, leads, timing) with per-metric leaders marked.
+- **Subscription e-signature** — the commitment flow ends by signing the
+  agreement (type-to-sign; Dropbox Sign in production); signed agreements
+  file into the Document Vault beside the K-1s.
+
+## Backend API
+
+NestJS over the schema; every request runs in a transaction with
+`app.current_user_id` / `app.user_role` set, so Row-Level Security applies
+end-to-end (the API connects as the non-owner `univest_api` role).
+
+```bash
+createdb univest
+psql -d univest -f backend/db/schema.sql
+psql -d univest -f backend/db/seed.sql
+cd backend/api && npm install && npm run build && npm start
+# GET  /api/v1/offerings                    · catalog
+# GET  /api/v1/offerings/:id                · detail + attestations + Q&A
+# POST /api/v1/offerings/:id/questions      · community diligence
+# POST /api/v1/investments                  · Reg CF limit + 1.5% fee + cooling-off stamp
+# DELETE /api/v1/investments/:id            · cancel (DB trigger enforces 48h window)
+# GET  /api/v1/portfolio                    · positions, commitments, tax docs (RLS)
+# GET  /api/v1/auctions/active              · window + indicative clearing price
+# POST /api/v1/auctions/:id/orders          · place bid/offer
+# POST /api/v1/auctions/:id/clear           · run the uniform-price engine
+# GET  /api/v1/users/me · POST /api/v1/users/me/suitability · POST /api/v1/webhooks/kyc
+```
+
+Demo auth passes the user id in `x-user-id` (stands in for the verified JWT
+subject); roles are resolved from the database, never from the client.
 - **Dark mode** — full light/dark theming (`#050C16` charcoal per spec) that
   follows the system, with an in-app AUTO → LIGHT → DARK override, persisted.
 - **Playfair Display serifs** — loaded via `expo-font` for display headers.

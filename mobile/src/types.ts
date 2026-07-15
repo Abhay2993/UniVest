@@ -153,3 +153,34 @@ export interface SyndicateInfo {
   thesis: string;
   verified: boolean;
 }
+
+/** A realized SPV exit with its distribution waterfall inputs. */
+export interface ExitedPosition {
+  id: string;
+  startupName: string;
+  spvName: string;
+  exitKind: string;
+  /** ISO date of the liquidity event. */
+  exitedOn: string;
+  units: number;
+  costBasis: number;
+  grossProceeds: number;
+  /** Platform carry percentage applied to profit. */
+  carryPct: number;
+}
+
+export type ActivityKind =
+  | 'milestone_attested'
+  | 'auction_cleared'
+  | 'tax_document'
+  | 'closing_soon'
+  | 'distribution';
+
+export interface ActivityItem {
+  id: string;
+  kind: ActivityKind;
+  title: string;
+  body: string;
+  /** ISO instant. */
+  date: string;
+}

@@ -11,11 +11,14 @@ import { STARTUPS, UNIVERSITIES, VERTICALS } from '../data/mock';
 import { Startup, Vertical } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
+import { useInbox } from '../state/InboxContext';
 import { useWatchlist } from '../state/WatchlistContext';
 import { formatMoneyCompact } from '../utils/format';
 import { ResearchMap } from '../components/ResearchMap';
 import { StartupCard } from '../components/StartupCard';
 import { UniversityLeaderboard } from '../components/UniversityLeaderboard';
+import { CompareScreen } from './CompareScreen';
+import { InboxScreen } from './InboxScreen';
 
 interface Props {
   onSelectStartup: (startup: Startup) => void;
@@ -36,8 +39,9 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
   const { preference, cyclePreference } = useTheme();
   const s = useThemedStyles(makeStyles);
   const { watchedIds, isFollowing } = useWatchlist();
+  const { unreadCount } = useInbox();
 
-  const [view, setView] = useState<'list' | 'map'>('list');
+  const [view, setView] = useState<'list' | 'map' | 'inbox' | 'compare'>('list');
   const [vertical, setVertical] = useState<Vertical | 'All'>('All');
   const [universityId, setUniversityId] = useState<string | null>(null);
   const [watchlistOnly, setWatchlistOnly] = useState(false);
@@ -72,6 +76,14 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
     );
   }
 
+  if (view === 'inbox') {
+    return <InboxScreen onClose={() => setView('list')} />;
+  }
+
+  if (view === 'compare') {
+    return <CompareScreen onClose={() => setView('list')} onSelectStartup={onSelectStartup} />;
+  }
+
   return (
     <View style={s.screen}>
       <FlatList
@@ -85,14 +97,27 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
             <View style={s.hero}>
               <View style={s.brandRow}>
                 <Text style={s.brand}>UNIVEST</Text>
-                <Pressable
-                  onPress={cyclePreference}
-                  hitSlop={10}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Theme: ${THEME_LABEL[preference]}. Tap to change.`}
-                >
-                  <Text style={s.themeToggle}>◐ {THEME_LABEL[preference]}</Text>
-                </Pressable>
+                <View style={s.brandActions}>
+                  <Pressable
+                    onPress={() => setView('inbox')}
+                    hitSlop={10}
+                    style={[s.inboxChip, unreadCount > 0 && s.inboxChipUnread]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Activity inbox, ${unreadCount} unread`}
+                  >
+                    <Text style={[s.inboxChipText, unreadCount > 0 && s.inboxChipTextUnread]}>
+                      INBOX{unreadCount > 0 ? ` · ${unreadCount}` : ''}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={cyclePreference}
+                    hitSlop={10}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Theme: ${THEME_LABEL[preference]}. Tap to change.`}
+                  >
+                    <Text style={s.themeToggle}>◐ {THEME_LABEL[preference]}</Text>
+                  </Pressable>
+                </View>
               </View>
               <Text style={s.heroTitle}>Global Discovery</Text>
               <Text style={s.heroSubtitle}>
@@ -158,16 +183,25 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
               <Text style={s.sectionLabelInline}>
                 {startups.length} Open Offering{startups.length === 1 ? '' : 's'}
               </Text>
-              <Pressable
-                onPress={() => setWatchlistOnly((cur) => !cur)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: watchlistOnly }}
-                style={[s.watchlistToggle, watchlistOnly && s.watchlistToggleActive]}
-              >
-                <Text style={[s.watchlistToggleText, watchlistOnly && s.watchlistToggleTextActive]}>
-                  ★ Watchlist{watchedIds.length > 0 ? ` (${watchedIds.length})` : ''}
-                </Text>
-              </Pressable>
+              <View style={s.offeringsActions}>
+                <Pressable
+                  onPress={() => setView('compare')}
+                  accessibilityRole="button"
+                  style={s.watchlistToggle}
+                >
+                  <Text style={s.watchlistToggleText}>⇄ Compare</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setWatchlistOnly((cur) => !cur)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: watchlistOnly }}
+                  style={[s.watchlistToggle, s.watchlistToggleSpaced, watchlistOnly && s.watchlistToggleActive]}
+                >
+                  <Text style={[s.watchlistToggleText, watchlistOnly && s.watchlistToggleTextActive]}>
+                    ★ Watchlist{watchedIds.length > 0 ? ` (${watchedIds.length})` : ''}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           </>
         }
@@ -266,6 +300,18 @@ const makeStyles = (c: Palette) => {
       marginBottom: space.md,
     },
     brand: { fontFamily: font.sans, fontSize: 11, letterSpacing: 4, color: c.gold },
+    brandActions: { flexDirection: 'row', alignItems: 'center' },
+    inboxChip: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairlineOnNavy,
+      borderRadius: radius.sm,
+      paddingHorizontal: space.sm,
+      paddingVertical: 3,
+      marginRight: space.md,
+    },
+    inboxChipUnread: { borderColor: c.gold },
+    inboxChipText: { fontFamily: font.sans, fontSize: 9, letterSpacing: 1.2, color: c.onNavyMuted },
+    inboxChipTextUnread: { color: c.gold, fontWeight: '700' },
     themeToggle: {
       fontFamily: font.sans,
       fontSize: 10,
@@ -372,6 +418,7 @@ const makeStyles = (c: Palette) => {
       marginTop: space.sm,
       marginBottom: space.sm,
     },
+    offeringsActions: { flexDirection: 'row', alignItems: 'center' },
     watchlistToggle: {
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: c.hairline,
@@ -379,6 +426,7 @@ const makeStyles = (c: Palette) => {
       paddingHorizontal: space.sm,
       paddingVertical: 4,
     },
+    watchlistToggleSpaced: { marginLeft: space.sm },
     watchlistToggleActive: { borderColor: c.bronze, backgroundColor: c.surfaceGoldTint },
     watchlistToggleText: { fontFamily: font.sans, fontSize: 11, color: c.inkMuted },
     watchlistToggleTextActive: { color: c.bronze, fontWeight: '600' },

@@ -9,11 +9,14 @@ import {
 import { Startup } from './src/types';
 import { lightPalette } from './src/theme/tokens';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { InboxProvider } from './src/state/InboxContext';
+import { InvestorProfileProvider, useInvestorProfile } from './src/state/InvestorProfileContext';
 import { PortfolioProvider } from './src/state/PortfolioContext';
 import { WatchlistProvider } from './src/state/WatchlistContext';
 import { Tab, TabBar } from './src/components/TabBar';
 import { DiscoveryFeedScreen } from './src/screens/DiscoveryFeedScreen';
 import { MarketsScreen } from './src/screens/MarketsScreen';
+import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { PortfolioScreen } from './src/screens/PortfolioScreen';
 import { StartupDetailScreen } from './src/screens/StartupDetailScreen';
 import { ToolsScreen } from './src/screens/ToolsScreen';
@@ -37,19 +40,33 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <WatchlistProvider>
-        <PortfolioProvider>
-          <Root />
-        </PortfolioProvider>
-      </WatchlistProvider>
+      <InvestorProfileProvider>
+        <WatchlistProvider>
+          <PortfolioProvider>
+            <InboxProvider>
+              <Root />
+            </InboxProvider>
+          </PortfolioProvider>
+        </WatchlistProvider>
+      </InvestorProfileProvider>
     </ThemeProvider>
   );
 }
 
 function Root() {
   const { palette } = useTheme();
+  const { onboardingVisible } = useInvestorProfile();
   const [tab, setTab] = useState<Tab>('discover');
   const [selected, setSelected] = useState<Startup | null>(null);
+
+  if (onboardingVisible) {
+    return (
+      <View style={[styles.root, { backgroundColor: palette.navy }]}>
+        <StatusBar style="light" backgroundColor={palette.navy} />
+        <OnboardingFlow />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: palette.navy }]}>

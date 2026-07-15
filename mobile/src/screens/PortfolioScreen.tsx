@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { PORTFOLIO_POSITIONS, STARTUPS, TAX_DOCUMENTS } from '../data/mock';
+import { EXITED_POSITIONS, PORTFOLIO_POSITIONS, STARTUPS, TAX_DOCUMENTS } from '../data/mock';
 import { Startup } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useThemedStyles } from '../theme/ThemeContext';
+import { usePortfolio } from '../state/PortfolioContext';
 import { CashFlow, tvpi, xirr } from '../utils/finance';
-import { formatMoney } from '../utils/format';
+import { formatDate, formatMoney } from '../utils/format';
 import { ChartPoint, LineChart } from '../components/LineChart';
 
 interface Props {
@@ -19,6 +20,18 @@ interface Props {
  */
 export function PortfolioScreen({ onSelectStartup }: Props) {
   const s = useThemedStyles(makeStyles);
+  const { commitments } = usePortfolio();
+
+  const signedAgreements = useMemo(
+    () =>
+      Object.values(commitments)
+        .filter((c) => c.signerName)
+        .map((c) => ({
+          ...c,
+          startupName: STARTUPS.find((st) => st.id === c.startupId)?.name ?? 'Offering',
+        })),
+    [commitments],
+  );
 
   const metrics = useMemo(() => {
     const paidIn = PORTFOLIO_POSITIONS.reduce((sum, p) => sum + p.costBasis, 0);
@@ -114,11 +127,63 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
         })}
       </View>
 
+      {/* Realized exits: the distribution waterfall */}
+      {EXITED_POSITIONS.map((exit) => {
+        const profit = Math.max(exit.grossProceeds - exit.costBasis, 0);
+        const carry = Math.round(profit * exit.carryPct) / 100;
+        const net = exit.grossProceeds - carry;
+        return (
+          <View key={exit.id} style={s.card}>
+            <Text style={s.overline}>Distribution Statement</Text>
+            <View style={s.exitHeader}>
+              <View style={s.exitLeft}>
+                <Text style={s.positionName}>{exit.startupName}</Text>
+                <Text style={s.positionSub}>
+                  {exit.spvName} · {exit.exitKind} · {formatDate(exit.exitedOn)}
+                </Text>
+              </View>
+              <Text style={s.exitMultiple}>{(net / exit.costBasis).toFixed(2)}x net</Text>
+            </View>
+            <WaterfallRow label="Gross proceeds" value={formatMoney(exit.grossProceeds)} />
+            <WaterfallRow label="Return of capital" value={formatMoney(exit.costBasis)} muted />
+            <WaterfallRow label="Profit" value={formatMoney(profit)} />
+            <WaterfallRow
+              label={`Platform carry (${exit.carryPct}%)`}
+              value={`− ${formatMoney(carry)}`}
+              muted
+            />
+            <View style={s.netRow}>
+              <Text style={s.netLabel}>Net to you</Text>
+              <Text style={s.netValue}>{formatMoney(net)}</Text>
+            </View>
+            <Text style={s.taxHint}>
+              Carry applies to profit only — never to your returned capital. Recorded in the carry
+              ledger at the moment of distribution.
+            </Text>
+          </View>
+        );
+      })}
+
       <View style={s.card}>
-        <Text style={s.overline}>Tax Document Center</Text>
+        <Text style={s.overline}>Document Vault</Text>
         <Text style={s.taxHint}>
-          Schedule K-1s are issued by the fund administrator each March for every SPV you hold.
+          Signed subscription agreements and Schedule K-1s, filed per SPV. K-1s are issued by the
+          fund administrator each March.
         </Text>
+        {signedAgreements.map((agreement) => (
+          <View key={agreement.startupId} style={s.taxRow}>
+            <View style={s.taxLeft}>
+              <Text style={s.taxKind}>Subscription Agreement — {agreement.startupName}</Text>
+              <Text style={s.positionSub}>
+                Signed {agreement.signerName} · {formatDate(agreement.committedAt.slice(0, 10))} ·{' '}
+                {formatMoney(agreement.amount)}
+              </Text>
+            </View>
+            <View style={s.taxBadge}>
+              <Text style={s.taxBadgeText}>↓ PDF</Text>
+            </View>
+          </View>
+        ))}
         {TAX_DOCUMENTS.map((doc, i) => (
           <View key={doc.id} style={[s.taxRow, i === TAX_DOCUMENTS.length - 1 && s.positionLast]}>
             <View style={s.taxLeft}>
@@ -139,6 +204,15 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
       </View>
     </ScrollView>
   );
+
+  function WaterfallRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+    return (
+      <View style={s.waterfallRow}>
+        <Text style={[s.waterfallLabel, muted && s.waterfallMuted]}>{label}</Text>
+        <Text style={[s.waterfallValue, muted && s.waterfallMuted]}>{value}</Text>
+      </View>
+    );
+  }
 
   function HeroStat({ value, label, gold }: { value: string; label: string; gold?: boolean }) {
     return (
@@ -226,6 +300,37 @@ const makeStyles = (c: Palette) => {
     positionMultipleDown: { color: c.amber },
 
     taxHint: { ...T.caption, fontSize: 11, marginTop: space.xs, marginBottom: space.sm },
+
+    exitHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginTop: space.sm,
+      marginBottom: space.md,
+    },
+    exitLeft: { flex: 1, paddingRight: space.sm },
+    exitMultiple: { ...T.financial, fontSize: 15, fontWeight: '700', color: c.emerald },
+    waterfallRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.hairline,
+      paddingVertical: space.sm,
+    },
+    waterfallLabel: { ...T.body, fontSize: 13 },
+    waterfallValue: { ...T.financial, fontSize: 13, fontWeight: '600' },
+    waterfallMuted: { color: c.inkMuted, fontWeight: '400' },
+    netRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      borderTopWidth: 1,
+      borderTopColor: c.gold,
+      paddingVertical: space.md,
+    },
+    netLabel: { fontFamily: font.serif, fontSize: 16, color: c.ink },
+    netValue: { fontFamily: font.sans, fontSize: 18, fontWeight: '700', color: c.bronze, ...tabularNums },
     taxRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',

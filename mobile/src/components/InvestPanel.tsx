@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
+import { LayoutAnimation, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Startup } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
@@ -9,6 +9,7 @@ import {
   CONCENTRATION_WARNING_PCT,
   usePortfolio,
 } from '../state/PortfolioContext';
+import { useInvestorProfile } from '../state/InvestorProfileContext';
 import { formatMoney } from '../utils/format';
 
 const QUIET_EASE = LayoutAnimation.create(
@@ -19,22 +20,27 @@ const QUIET_EASE = LayoutAnimation.create(
 
 const MAX_TICKET = 5_000;
 
-type Stage = 'idle' | 'amount' | 'warning';
+type Stage = 'idle' | 'amount' | 'warning' | 'sign';
 
 /**
  * The commitment flow, pinned under the detail scroll:
  *  idle → amount selection → (concentration nudge when a single position
- *  would exceed 40% of the annual limit) → reserved.
+ *  would exceed 40% of the annual limit) → subscription-agreement
+ *  e-signature → reserved.
  * A reserved commitment shows the Reg CF cooling-off countdown with one-tap
  * cancellation until 48h before close — mirroring the database trigger.
  */
 export function InvestPanel({ startup }: { startup: Startup }) {
   const s = useThemedStyles(makeStyles);
   const { getCommitment, commit, cancel, exposurePct } = usePortfolio();
+  const { profile, requestOnboarding } = useInvestorProfile();
   const [stage, setStage] = useState<Stage>('idle');
   const [amount, setAmount] = useState(startup.minInvestment);
+  const [signature, setSignature] = useState(profile.fullName ?? '');
 
   const commitment = getCommitment(startup.id);
+  const verified = profile.kycStatus === 'approved';
+  const annualLimit = profile.annualLimit ?? ANNUAL_INVESTMENT_LIMIT;
 
   const presets = [startup.minInvestment, 500, 1_000, 2_500, 5_000]
     .filter((v, i, arr) => v >= startup.minInvestment && v <= MAX_TICKET && arr.indexOf(v) === i)
@@ -46,20 +52,21 @@ export function InvestPanel({ startup }: { startup: Startup }) {
   };
 
   const reserve = () => {
-    if (exposurePct(startup.id, amount) >= CONCENTRATION_WARNING_PCT) {
+    if (exposurePct(startup.id, amount, annualLimit) >= CONCENTRATION_WARNING_PCT) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       go('warning');
       return;
     }
-    confirm();
+    go('sign');
   };
 
   const confirm = () => {
     // Haptic feedback on financial confirmation, per micro-interaction spec.
     // Production also records a suitability_acknowledgements row when the
-    // concentration nudge was shown.
+    // concentration nudge was shown, and files the countersigned agreement
+    // (Dropbox Sign) in the Document Vault.
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    commit(startup, amount);
+    commit(startup, amount, signature.trim());
     go('idle');
   };
 
@@ -80,12 +87,12 @@ export function InvestPanel({ startup }: { startup: Startup }) {
   }
 
   if (stage === 'warning') {
-    const pct = Math.round(exposurePct(startup.id, amount));
+    const pct = Math.round(exposurePct(startup.id, amount, annualLimit));
     return (
       <View style={s.bar}>
         <Text style={s.warnTitle}>A measured note on concentration</Text>
         <Text style={s.warnBody}>
-          This commitment would place {pct}% of your {formatMoney(ANNUAL_INVESTMENT_LIMIT)} annual
+          This commitment would place {pct}% of your {formatMoney(annualLimit)} annual
           allowance in a single {startup.vertical} position. Deep-tech timelines reward
           diversification across several offerings. You may proceed — consider whether this
           weighting reflects your intent.
@@ -94,10 +101,62 @@ export function InvestPanel({ startup }: { startup: Startup }) {
           <Pressable style={s.ghostBtn} onPress={() => go('amount')} accessibilityRole="button">
             <Text style={s.ghostBtnText}>Adjust Amount</Text>
           </Pressable>
-          <Pressable style={s.cta} onPress={confirm} accessibilityRole="button">
+          <Pressable style={s.cta} onPress={() => go('sign')} accessibilityRole="button">
             <Text style={s.ctaText}>Proceed — I Understand</Text>
           </Pressable>
         </View>
+      </View>
+    );
+  }
+
+  if (stage === 'sign') {
+    const fee = Math.round(amount * 1.5) / 100;
+    const canSign = signature.trim().length >= 3;
+    return (
+      <View style={s.bar}>
+        <View style={s.amountHeader}>
+          <Text style={s.overline}>Subscription Agreement</Text>
+          <Pressable onPress={() => go('amount')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back to amount selection">
+            <Text style={s.dismiss}>✕</Text>
+          </Pressable>
+        </View>
+        <View style={s.termRow}>
+          <Text style={s.termLabel}>Commitment</Text>
+          <Text style={s.termValue}>{formatMoney(amount)}</Text>
+        </View>
+        <View style={s.termRow}>
+          <Text style={s.termLabel}>SPV admin fee (1.5%)</Text>
+          <Text style={s.termValue}>{formatMoney(fee)}</Text>
+        </View>
+        <View style={s.termRow}>
+          <Text style={s.termLabel}>Issuer</Text>
+          <Text style={s.termValue}>{startup.name} — via nominee SPV</Text>
+        </View>
+        <Text style={s.signDisclosure}>
+          I acknowledge the risk of total loss, the illiquidity of these securities, and my
+          cancellation right until 48 hours before close.
+        </Text>
+        <TextInput
+          style={s.signInput}
+          value={signature}
+          onChangeText={setSignature}
+          placeholder="Type your full legal name to sign"
+          placeholderTextColor={s.signPlaceholder.color}
+          autoCapitalize="words"
+          accessibilityLabel="Type your full legal name to sign"
+        />
+        <Pressable
+          style={[s.cta, !canSign && s.ctaDisabled]}
+          disabled={!canSign}
+          onPress={confirm}
+          accessibilityRole="button"
+        >
+          <Text style={s.ctaText}>Sign & Reserve {formatMoney(amount)}</Text>
+        </Pressable>
+        <Text style={s.footnote}>
+          E-signature executed via Dropbox Sign in production (ESIGN/UETA) · the countersigned
+          agreement files to your Document Vault
+        </Text>
       </View>
     );
   }
@@ -131,6 +190,24 @@ export function InvestPanel({ startup }: { startup: Startup }) {
         </Pressable>
         <Text style={s.footnote}>
           1.5% SPV admin fee · cancel any time until 48h before close (Reg CF)
+        </Text>
+      </View>
+    );
+  }
+
+  if (!verified) {
+    return (
+      <View style={s.bar}>
+        <Pressable
+          onPress={requestOnboarding}
+          style={({ pressed }) => [s.cta, pressed && s.ctaPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Verify your identity to invest"
+        >
+          <Text style={s.ctaText}>Verify Identity to Invest</Text>
+        </Pressable>
+        <Text style={s.footnote}>
+          Investing requires identity verification and the suitability quiz — about two minutes
         </Text>
       </View>
     );
@@ -237,6 +314,39 @@ const makeStyles = (c: Palette) => {
       paddingVertical: 14,
     },
     ctaPressed: { opacity: 0.9 },
+    ctaDisabled: { opacity: 0.35 },
+
+    termRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      paddingVertical: 5,
+    },
+    termLabel: { ...T.caption, fontSize: 12 },
+    termValue: { ...T.financial, fontSize: 13, fontWeight: '600' },
+    signDisclosure: {
+      ...T.caption,
+      fontSize: 11,
+      lineHeight: 17,
+      marginTop: space.sm,
+      marginBottom: space.md,
+      borderLeftWidth: 2,
+      borderLeftColor: c.gold,
+      paddingLeft: space.sm,
+    },
+    signInput: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+      borderRadius: radius.sm,
+      backgroundColor: c.background,
+      color: c.ink,
+      fontFamily: font.serif,
+      fontSize: 16,
+      paddingHorizontal: space.md,
+      paddingVertical: 11,
+      marginBottom: space.md,
+    },
+    signPlaceholder: { color: c.inkFaint },
     ctaText: {
       fontFamily: font.sans,
       fontSize: 14,
