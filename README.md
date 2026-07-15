@@ -58,6 +58,20 @@ framework.
 - **Watchlist + closing-soon alerts** — star any offering to persist it
   (AsyncStorage) and schedule a local "closes in 48h" notification
   (`expo-notifications`); unstarring cancels the alert.
+- **Independent milestone attestation** — completed milestones carry a
+  verification stamp (attestor name, TTO / independent-reviewer role, signing
+  date, Ed25519 key fingerprint) backed by the `attestor_keys` registry and
+  `milestone_attestations` table.
+- **Community Diligence Q&A** — threaded public questions on every deal with
+  FOUNDER / TTO / INVESTOR role badges and an ask-a-question composer
+  (`deal_questions` / `deal_answers` with moderation-preserving hides).
+- **Reg CF cooling-off flow** — commitments show a live countdown and one-tap
+  cancel until 48h before close; the same rule is enforced by a database
+  trigger on `investments`.
+- **Concentration nudge** — committing ≥40% of the annual suitability limit
+  to a single position surfaces a calm diversification note (audit-trailed in
+  `suitability_acknowledgements`, exposure computed by the
+  `investor_concentration` view).
 - **Dark mode** — full light/dark theming (`#050C16` charcoal per spec) that
   follows the system, with an in-app AUTO → LIGHT → DARK override, persisted.
 - **Playfair Display serifs** — loaded via `expo-font` for display headers.

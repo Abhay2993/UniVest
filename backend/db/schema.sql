@@ -30,6 +30,8 @@ CREATE TYPE trade_status       AS ENUM ('listed', 'matched', 'in_escrow', 'settl
 CREATE TYPE ledger_entry_type  AS ENUM ('success_fee', 'admin_fee', 'carry', 'saas_subscription', 'refund');
 CREATE TYPE saas_tier          AS ENUM ('starter', 'portfolio', 'enterprise');
 CREATE TYPE mandate_status     AS ENUM ('active', 'paused', 'revoked');
+CREATE TYPE attestor_role      AS ENUM ('tto', 'independent_reviewer');
+CREATE TYPE ack_kind           AS ENUM ('concentration_warning', 'risk_disclosure');
 
 -- ----------------------------------------------------------------------------
 -- Users (retail investors, institutional leads, TTO officers, admins)
@@ -190,6 +192,65 @@ CREATE TABLE milestones (
 );
 
 -- ----------------------------------------------------------------------------
+-- Independent milestone attestation (trust layer)
+-- A completed milestone becomes "independently verified" only when a TTO
+-- officer or third-party reviewer signs the evidence bundle. Verification =
+-- Ed25519 signature over the evidence hash, checked against the registered
+-- key. The stamp (attestor name, role, signed date, key fingerprint) is
+-- rendered in the app's Visual Milestone Tracker.
+-- ----------------------------------------------------------------------------
+CREATE TABLE attestor_keys (
+    key_id          TEXT PRIMARY KEY,                           -- e.g. 'oxford-tto-2026-01'
+    owner_name      TEXT        NOT NULL,
+    owner_user_id   UUID        REFERENCES users(id),
+    university_id   UUID        REFERENCES universities(id),
+    ed25519_pubkey  BYTEA       NOT NULL,                       -- 32-byte public key
+    fingerprint     TEXT        NOT NULL UNIQUE,                -- short display form
+    valid_from      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    revoked_at      TIMESTAMPTZ
+);
+
+CREATE TABLE milestone_attestations (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    milestone_id    UUID          NOT NULL REFERENCES milestones(id) ON DELETE CASCADE,
+    attestor_name   TEXT          NOT NULL,
+    attestor_org    TEXT          NOT NULL,                     -- "Oxford University Innovation"
+    attestor_role   attestor_role NOT NULL,
+    key_id          TEXT          NOT NULL REFERENCES attestor_keys(key_id),
+    evidence_hash   BYTEA         NOT NULL,                     -- SHA-256 of the evidence bundle
+    signature       BYTEA         NOT NULL,                     -- Ed25519 over evidence_hash
+    signed_at       TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    UNIQUE (milestone_id, key_id)
+);
+
+-- ----------------------------------------------------------------------------
+-- Deal Q&A (community diligence; the public discussion channel Reg CF expects)
+-- Author badges (founder / TTO / investor) derive from users.role and
+-- university_members at read time. Moderation hides rather than deletes,
+-- preserving the audit trail.
+-- ----------------------------------------------------------------------------
+CREATE TABLE deal_questions (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id   UUID        NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    author_id     UUID        NOT NULL REFERENCES users(id),
+    body          TEXT        NOT NULL CHECK (char_length(body) BETWEEN 10 AND 4000),
+    upvotes       INTEGER     NOT NULL DEFAULT 0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    hidden_at     TIMESTAMPTZ,
+    hidden_reason TEXT
+);
+
+CREATE TABLE deal_answers (
+    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    question_id   UUID        NOT NULL REFERENCES deal_questions(id) ON DELETE CASCADE,
+    author_id     UUID        NOT NULL REFERENCES users(id),
+    body          TEXT        NOT NULL CHECK (char_length(body) BETWEEN 1 AND 8000),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    hidden_at     TIMESTAMPTZ,
+    hidden_reason TEXT
+);
+
+-- ----------------------------------------------------------------------------
 -- SPVs (one nominee entity pools all retail capital per campaign)
 -- ----------------------------------------------------------------------------
 CREATE TABLE spvs (
@@ -238,6 +299,13 @@ CREATE TABLE investments (
     mandate_id          UUID,                                   -- FK added after auto_invest_mandates
 
     payment_intent_ref  TEXT,                                   -- Stripe payment intent id
+
+    -- Reg CF cooling-off: investors may cancel until 48h before campaign
+    -- close. Stamped by trigger from campaigns.closes_at; cancellation after
+    -- this instant is rejected at the database layer.
+    cancellable_until   TIMESTAMPTZ,
+    cancelled_at        TIMESTAMPTZ,
+
     escrowed_at         TIMESTAMPTZ,
     settled_at          TIMESTAMPTZ,
     refunded_at         TIMESTAMPTZ,
@@ -317,6 +385,31 @@ CREATE TABLE revenue_ledger (
     occurred_at    TIMESTAMPTZ       NOT NULL DEFAULT now()
 );
 
+-- Suitability acknowledgements: an audit trail proving the investor saw and
+-- accepted each concentration warning / risk disclosure before committing.
+CREATE TABLE suitability_acknowledgements (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID        NOT NULL REFERENCES users(id),
+    campaign_id     UUID        REFERENCES campaigns(id),
+    kind            ack_kind    NOT NULL,
+    exposure_pct    NUMERIC(5,1),                               -- % of annual limit at time of warning
+    acknowledged_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Rolling single-position exposure as % of each investor's annual limit —
+-- the concentration-warning engine reads this before accepting an order.
+CREATE VIEW investor_concentration AS
+SELECT i.investor_id,
+       i.campaign_id,
+       SUM(i.amount)                                        AS committed,
+       u.invest_limit_annual,
+       ROUND(100 * SUM(i.amount) / NULLIF(u.invest_limit_annual, 0), 1) AS pct_of_annual_limit
+  FROM investments i
+  JOIN users u ON u.id = i.investor_id
+ WHERE i.status IN ('pending_payment', 'escrowed', 'settled')
+   AND i.created_at > now() - INTERVAL '365 days'
+ GROUP BY i.investor_id, i.campaign_id, u.invest_limit_annual;
+
 -- Carry tracking per investor position at liquidity events:
 -- carry_due = max(proceeds - cost_basis, 0) * spvs.carry_pct / 100
 CREATE TABLE carry_ledger (
@@ -360,6 +453,35 @@ END $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_investments_raised
     AFTER INSERT OR UPDATE OF status, amount OR DELETE ON investments
     FOR EACH ROW EXECUTE FUNCTION refresh_campaign_raised();
+
+-- Stamp the Reg CF cooling-off deadline (48h before campaign close) on every
+-- new investment, and refuse cancellations once the window has passed.
+CREATE OR REPLACE FUNCTION stamp_cancellation_window() RETURNS trigger AS $$
+BEGIN
+    SELECT c.closes_at - INTERVAL '48 hours' INTO NEW.cancellable_until
+      FROM campaigns c WHERE c.id = NEW.campaign_id;
+    RETURN NEW;
+END $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_investments_cancel_window
+    BEFORE INSERT ON investments
+    FOR EACH ROW EXECUTE FUNCTION stamp_cancellation_window();
+
+CREATE OR REPLACE FUNCTION enforce_cancellation_window() RETURNS trigger AS $$
+BEGIN
+    IF NEW.status = 'cancelled' AND OLD.status IN ('pending_kyc', 'pending_payment', 'escrowed') THEN
+        IF OLD.cancellable_until IS NOT NULL AND now() > OLD.cancellable_until THEN
+            RAISE EXCEPTION 'cancellation window closed at % (Reg CF 48h rule)', OLD.cancellable_until
+                USING ERRCODE = 'check_violation';
+        END IF;
+        NEW.cancelled_at = now();
+    END IF;
+    RETURN NEW;
+END $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_investments_enforce_cancel
+    BEFORE UPDATE OF status ON investments
+    FOR EACH ROW EXECUTE FUNCTION enforce_cancellation_window();
 
 -- ----------------------------------------------------------------------------
 -- Row-Level Security
@@ -414,6 +536,25 @@ CREATE POLICY mandates_own ON auto_invest_mandates
 CREATE POLICY carry_own ON carry_ledger FOR SELECT
     USING (user_id = app_user_id() OR app_is_admin());
 
+-- Deal Q&A: public read while unmoderated; authors write as themselves.
+ALTER TABLE deal_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deal_answers   ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY questions_read ON deal_questions FOR SELECT
+    USING (hidden_at IS NULL OR author_id = app_user_id() OR app_is_admin());
+CREATE POLICY questions_write ON deal_questions FOR INSERT
+    WITH CHECK (author_id = app_user_id() OR app_is_admin());
+CREATE POLICY answers_read ON deal_answers FOR SELECT
+    USING (hidden_at IS NULL OR author_id = app_user_id() OR app_is_admin());
+CREATE POLICY answers_write ON deal_answers FOR INSERT
+    WITH CHECK (author_id = app_user_id() OR app_is_admin());
+
+-- Acknowledgements are the investor's own audit trail.
+ALTER TABLE suitability_acknowledgements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY acks_own ON suitability_acknowledgements
+    USING (user_id = app_user_id() OR app_is_admin())
+    WITH CHECK (user_id = app_user_id() OR app_is_admin());
+
 -- Public catalog tables (universities, startups, campaigns, milestones,
 -- syndicates) intentionally have no RLS: they are read-mostly marketing data;
 -- writes are restricted at the API layer to TTO/admin roles.
@@ -430,3 +571,7 @@ CREATE INDEX idx_investments_investor  ON investments (investor_id, created_at D
 CREATE INDEX idx_trades_open_by_spv    ON secondary_trades (spv_id, listed_at DESC) WHERE status = 'listed';
 CREATE INDEX idx_revenue_type_time     ON revenue_ledger (entry_type, occurred_at DESC);
 CREATE INDEX idx_universities_geo      ON universities (latitude, longitude);
+CREATE INDEX idx_attestations_milestone ON milestone_attestations (milestone_id);
+CREATE INDEX idx_questions_campaign    ON deal_questions (campaign_id, created_at DESC) WHERE hidden_at IS NULL;
+CREATE INDEX idx_answers_question      ON deal_answers (question_id, created_at);
+CREATE INDEX idx_acks_user             ON suitability_acknowledgements (user_id, acknowledged_at DESC);

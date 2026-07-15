@@ -14,6 +14,7 @@ import { Milestone } from '../types';
 import { font, Palette, radius, space, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatDate } from '../utils/format';
+import { AttestationStamp } from './AttestationStamp';
 import { ProgressBar } from './ProgressBar';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -66,8 +67,9 @@ export function MilestoneTracker({ milestones }: Props) {
       </View>
       <ProgressBar progress={completion} height={4} fillColor={palette.gold} />
       <Text style={s.summaryHint}>
-        {milestones.filter((m) => m.status === 'completed').length} of {milestones.length} milestones
-        independently verified
+        {milestones.filter((m) => m.attestation).length} of {milestones.length} milestones
+        independently attested — cryptographically signed by the university TTO or a third-party
+        reviewer
       </Text>
 
       <View style={s.timeline}>
@@ -117,16 +119,18 @@ function MilestoneRow({
         <View style={s.rowHeader}>
           <Text style={[s.rowTitle, !done && !active && s.rowTitleMuted]}>
             {milestone.title}
+            {milestone.attestation ? <Text style={s.attestMark}> ✦</Text> : null}
           </Text>
           <Text style={s.rowDate}>{formatDate(milestone.date)}</Text>
         </View>
         <Text style={s.rowStatus}>
-          {done ? 'Completed' : active ? 'In progress' : 'Projected'}
+          {done ? (milestone.attestation ? 'Completed · Attested' : 'Completed') : active ? 'In progress' : 'Projected'}
         </Text>
 
         {expanded && (
           <View style={s.detail}>
             <Text style={s.detailText}>{milestone.description}</Text>
+            {milestone.attestation && <AttestationStamp attestation={milestone.attestation} />}
             {done && milestone.hasVideoUpdate && (
               <View style={s.videoChip}>
                 <Text style={s.videoChipGlyph}>▶</Text>
@@ -226,6 +230,7 @@ const makeStyles = (c: Palette) => {
     rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
     rowTitle: { ...T.body, fontWeight: '600', flex: 1, paddingRight: space.sm },
     rowTitleMuted: { color: c.inkFaint, fontWeight: '400' },
+    attestMark: { color: c.gold, fontSize: 12 },
     rowDate: { ...T.financial, fontSize: 12, color: c.inkMuted },
     rowStatus: { ...T.caption, fontSize: 11, marginTop: 1 },
 

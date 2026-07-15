@@ -9,6 +9,7 @@ import {
 import { Startup } from './src/types';
 import { lightPalette } from './src/theme/tokens';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { PortfolioProvider } from './src/state/PortfolioContext';
 import { WatchlistProvider } from './src/state/WatchlistContext';
 import { DiscoveryFeedScreen } from './src/screens/DiscoveryFeedScreen';
 import { StartupDetailScreen } from './src/screens/StartupDetailScreen';
@@ -34,7 +35,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <WatchlistProvider>
-        <Root />
+        <PortfolioProvider>
+          <Root />
+        </PortfolioProvider>
       </WatchlistProvider>
     </ThemeProvider>
   );

@@ -121,7 +121,28 @@ sequenceDiagram
 4. Escrow releases to seller; realized gain recorded in `carry_ledger`
    (platform carry applies at 15% of profit on exit events).
 
-## 4. Technology Choices
+## 4. Trust Layer
+
+- **Milestone attestation** — a TTO officer or accredited third-party reviewer
+  signs the SHA-256 of a milestone's evidence bundle with an Ed25519 key
+  registered in `attestor_keys`. The Campaign Service verifies the signature
+  against the registry before marking the milestone attested; the app renders
+  the stamp (name, role, date, key fingerprint) in the Visual Milestone
+  Tracker. Key revocation invalidates future — not historical — attestations.
+- **Community diligence** — every campaign carries a public Q&A thread
+  (`deal_questions`/`deal_answers`); founder and TTO answers are badged from
+  verified roles. Moderation hides rather than deletes, preserving the
+  offering record Reg CF expects.
+- **Cooling-off enforcement** — `investments.cancellable_until` is stamped at
+  order time (campaign close − 48h) and a database trigger rejects late
+  cancellations, so the Reg CF window holds even if an API bug lets a request
+  through. The app mirrors the rule with a live countdown and one-tap cancel.
+- **Concentration nudges** — the `investor_concentration` view reports each
+  investor's single-position share of their annual limit; orders crossing the
+  warning threshold require an acknowledgement that is audit-trailed in
+  `suitability_acknowledgements`.
+
+## 5. Technology Choices
 
 | Layer | Choice | Rationale |
 | --- | --- | --- |

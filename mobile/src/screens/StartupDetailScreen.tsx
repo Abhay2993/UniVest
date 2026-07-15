@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { Startup } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
-import { formatMoney, formatMoneyCompact, formatPct } from '../utils/format';
+import { formatMoneyCompact, formatPct, formatMoney } from '../utils/format';
 import { BookmarkButton } from '../components/BookmarkButton';
+import { InvestPanel } from '../components/InvestPanel';
 import { MilestoneTracker } from '../components/MilestoneTracker';
 import { ProgressBar } from '../components/ProgressBar';
+import { QASection } from '../components/QASection';
 import { VerifiedBadge } from '../components/VerifiedBadge';
 
 type PitchTab = 'plain' | 'commercial' | 'proof';
@@ -24,15 +25,14 @@ interface Props {
 }
 
 /**
- * Startup detail — AI Layman Pitch Deck (Module 2) above the interactive
- * Visual Milestone Tracker, closed by the gold invest CTA with haptic
- * confirmation on commit.
+ * Startup detail — AI Layman Pitch Deck (Module 2), the attested Visual
+ * Milestone Tracker, and the Community Diligence Q&A, closed by the
+ * commitment flow (amount → concentration nudge → cooling-off countdown).
  */
 export function StartupDetailScreen({ startup, onBack }: Props) {
   const { palette } = useTheme();
   const s = useThemedStyles(makeStyles);
   const [tab, setTab] = useState<PitchTab>('plain');
-  const [committed, setCommitted] = useState(false);
   const progress = startup.raisedAmount / startup.targetAmount;
 
   const pitchText =
@@ -41,12 +41,6 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
       : tab === 'commercial'
         ? startup.pitch.commercialization
         : startup.pitch.labProof;
-
-  const confirmInvestment = () => {
-    // Haptic feedback on financial confirmation, per micro-interaction spec.
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    setCommitted(true);
-  };
 
   return (
     <View style={s.screen}>
@@ -117,27 +111,15 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
         <View style={s.trackerWrap}>
           <MilestoneTracker milestones={startup.milestones} />
         </View>
+
+        {/* Community Diligence Q&A */}
+        <View style={s.trackerWrap}>
+          <QASection startupName={startup.name} questions={startup.questions} />
+        </View>
       </ScrollView>
 
-      {/* Invest CTA — champagne gold, reserved for the primary action */}
-      <View style={s.ctaBar}>
-        <Pressable
-          onPress={confirmInvestment}
-          disabled={committed}
-          style={({ pressed }) => [s.cta, pressed && s.ctaPressed, committed && s.ctaDone]}
-          accessibilityRole="button"
-          accessibilityLabel={`Invest in ${startup.name}, minimum ${formatMoney(startup.minInvestment)}`}
-        >
-          <Text style={[s.ctaText, committed && s.ctaTextDone]}>
-            {committed
-              ? '✓ Commitment Reserved'
-              : `Invest — from ${formatMoney(startup.minInvestment)}`}
-          </Text>
-        </Pressable>
-        <Text style={s.ctaFootnote}>
-          1.5% SPV admin fee applies · subject to your suitability limit
-        </Text>
-      </View>
+      {/* Commitment flow — gold CTA, concentration nudge, cooling-off countdown */}
+      <InvestPanel startup={startup} />
     </View>
   );
 
@@ -240,31 +222,5 @@ const makeStyles = (c: Palette) => {
     pitchDisclaimer: { ...T.caption, fontSize: 10, marginTop: space.md, color: c.inkFaint },
 
     trackerWrap: { marginHorizontal: space.md, marginBottom: space.md },
-
-    ctaBar: {
-      backgroundColor: c.surface,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: c.hairline,
-      paddingHorizontal: space.lg,
-      paddingTop: space.md,
-      paddingBottom: space.xl,
-    },
-    cta: {
-      backgroundColor: c.gold,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      paddingVertical: 14,
-    },
-    ctaPressed: { opacity: 0.9 },
-    ctaDone: { backgroundColor: c.navy },
-    ctaText: {
-      fontFamily: font.sans,
-      fontSize: 14,
-      fontWeight: '700',
-      letterSpacing: 0.4,
-      color: '#0A192F',
-    },
-    ctaTextDone: { color: c.gold },
-    ctaFootnote: { ...T.caption, fontSize: 10, textAlign: 'center', marginTop: space.sm },
   });
 };

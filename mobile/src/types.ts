@@ -7,6 +7,21 @@ export type Vertical =
 
 export type MilestoneStatus = 'completed' | 'in_progress' | 'upcoming';
 
+/**
+ * Independent sign-off on a completed milestone: a TTO officer or third-party
+ * reviewer signs the evidence bundle (Ed25519 over its SHA-256) with a key
+ * from the platform's attestor registry. The stamp renders in the tracker.
+ */
+export interface MilestoneAttestation {
+  verifierName: string;
+  verifierOrg: string;
+  role: 'tto' | 'independent_reviewer';
+  /** ISO date of signature. */
+  signedAt: string;
+  /** Short fingerprint of the registered Ed25519 public key. */
+  keyFingerprint: string;
+}
+
 export interface Milestone {
   id: string;
   title: string;
@@ -15,6 +30,29 @@ export interface Milestone {
   /** ISO date — target for upcoming, actual for completed. */
   date: string;
   hasVideoUpdate?: boolean;
+  attestation?: MilestoneAttestation;
+}
+
+export type QARole = 'founder' | 'tto' | 'investor';
+
+export interface QAAnswer {
+  id: string;
+  authorName: string;
+  role: QARole;
+  body: string;
+  /** ISO date. */
+  date: string;
+}
+
+export interface QAQuestion {
+  id: string;
+  authorName: string;
+  role: QARole;
+  body: string;
+  /** ISO date. */
+  date: string;
+  upvotes: number;
+  answers: QAAnswer[];
 }
 
 export interface University {
@@ -48,4 +86,5 @@ export interface Startup {
     labProof: string;
   };
   milestones: Milestone[];
+  questions: QAQuestion[];
 }
