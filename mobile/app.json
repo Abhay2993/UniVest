@@ -4,7 +4,7 @@
     "slug": "univest",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#0A192F",
     "splash": {
       "backgroundColor": "#0A192F"

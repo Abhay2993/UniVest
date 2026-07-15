@@ -22,6 +22,10 @@ export interface University {
   name: string;
   shortName: string;
   country: string;
+  city: string;
+  /** WGS84 coordinates for the Global Research Map. */
+  latitude: number;
+  longitude: number;
   activeDeals: number;
 }
 

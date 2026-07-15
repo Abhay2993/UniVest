@@ -11,7 +11,8 @@ import {
   View,
 } from 'react-native';
 import { Milestone } from '../types';
-import { color, font, radius, space, type } from '../theme/tokens';
+import { font, Palette, radius, space, typeStyles } from '../theme/tokens';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatDate } from '../utils/format';
 import { ProgressBar } from './ProgressBar';
 
@@ -36,6 +37,8 @@ interface Props {
  * founder micro-video updates surface a review chip.
  */
 export function MilestoneTracker({ milestones }: Props) {
+  const { palette } = useTheme();
+  const s = useThemedStyles(makeStyles);
   const [expandedId, setExpandedId] = useState<string | null>(
     milestones.find((m) => m.status === 'in_progress')?.id ?? null,
   );
@@ -55,19 +58,19 @@ export function MilestoneTracker({ milestones }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={type.overline}>Lab Progress</Text>
-      <View style={styles.summaryRow}>
-        <Text style={styles.summaryTitle}>Research → Revenue</Text>
-        <Text style={styles.summaryPct}>{Math.round(completion * 100)}%</Text>
+    <View style={s.container}>
+      <Text style={s.overline}>Lab Progress</Text>
+      <View style={s.summaryRow}>
+        <Text style={s.summaryTitle}>Research → Revenue</Text>
+        <Text style={s.summaryPct}>{Math.round(completion * 100)}%</Text>
       </View>
-      <ProgressBar progress={completion} height={4} fillColor={color.gold} trackColor={color.surfaceMuted} />
-      <Text style={styles.summaryHint}>
+      <ProgressBar progress={completion} height={4} fillColor={palette.gold} />
+      <Text style={s.summaryHint}>
         {milestones.filter((m) => m.status === 'completed').length} of {milestones.length} milestones
         independently verified
       </Text>
 
-      <View style={styles.timeline}>
+      <View style={s.timeline}>
         {milestones.map((m, i) => (
           <MilestoneRow
             key={m.id}
@@ -93,40 +96,41 @@ function MilestoneRow({
   expanded: boolean;
   onPress: () => void;
 }) {
+  const s = useThemedStyles(makeStyles);
   const done = milestone.status === 'completed';
   const active = milestone.status === 'in_progress';
 
   return (
     <Pressable
       onPress={onPress}
-      style={styles.row}
+      style={s.row}
       accessibilityRole="button"
       accessibilityState={{ expanded }}
       accessibilityLabel={`Milestone: ${milestone.title}, ${milestone.status.replace('_', ' ')}`}
     >
-      <View style={styles.rail}>
+      <View style={s.rail}>
         <Node status={milestone.status} />
-        {!isLast && <View style={[styles.connector, done && styles.connectorDone]} />}
+        {!isLast && <View style={[s.connector, done && s.connectorDone]} />}
       </View>
 
-      <View style={[styles.rowBody, !isLast && styles.rowBodySpacing]}>
-        <View style={styles.rowHeader}>
-          <Text style={[styles.rowTitle, !done && !active && styles.rowTitleMuted]}>
+      <View style={[s.rowBody, !isLast && s.rowBodySpacing]}>
+        <View style={s.rowHeader}>
+          <Text style={[s.rowTitle, !done && !active && s.rowTitleMuted]}>
             {milestone.title}
           </Text>
-          <Text style={styles.rowDate}>{formatDate(milestone.date)}</Text>
+          <Text style={s.rowDate}>{formatDate(milestone.date)}</Text>
         </View>
-        <Text style={styles.rowStatus}>
+        <Text style={s.rowStatus}>
           {done ? 'Completed' : active ? 'In progress' : 'Projected'}
         </Text>
 
         {expanded && (
-          <View style={styles.detail}>
-            <Text style={styles.detailText}>{milestone.description}</Text>
+          <View style={s.detail}>
+            <Text style={s.detailText}>{milestone.description}</Text>
             {done && milestone.hasVideoUpdate && (
-              <View style={styles.videoChip}>
-                <Text style={styles.videoChipGlyph}>▶</Text>
-                <Text style={styles.videoChipText}>FOUNDER LAB UPDATE · 90s</Text>
+              <View style={s.videoChip}>
+                <Text style={s.videoChipGlyph}>▶</Text>
+                <Text style={s.videoChipText}>FOUNDER LAB UPDATE · 90s</Text>
               </View>
             )}
           </View>
@@ -138,6 +142,7 @@ function MilestoneRow({
 
 /** Timeline node: solid emerald square (done), pulsing gold (active), hollow (projected). */
 function Node({ status }: { status: Milestone['status'] }) {
+  const s = useThemedStyles(makeStyles);
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -154,97 +159,101 @@ function Node({ status }: { status: Milestone['status'] }) {
 
   if (status === 'completed') {
     return (
-      <View style={[styles.node, styles.nodeDone]}>
-        <Text style={styles.nodeTick}>✓</Text>
+      <View style={[s.node, s.nodeDone]}>
+        <Text style={s.nodeTick}>✓</Text>
       </View>
     );
   }
   if (status === 'in_progress') {
-    return <Animated.View style={[styles.node, styles.nodeActive, { opacity: pulse }]} />;
+    return <Animated.View style={[s.node, s.nodeActive, { opacity: pulse }]} />;
   }
-  return <View style={[styles.node, styles.nodeUpcoming]} />;
+  return <View style={[s.node, s.nodeUpcoming]} />;
 }
 
 const NODE = 18;
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: color.surface,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.hairline,
-    padding: space.lg,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginTop: space.sm,
-    marginBottom: space.sm,
-  },
-  summaryTitle: { ...type.heading },
-  summaryPct: { fontFamily: font.serif, fontSize: 24, color: color.bronze },
-  summaryHint: { ...type.caption, marginTop: space.sm, marginBottom: space.lg },
+const makeStyles = (c: Palette) => {
+  const T = typeStyles(c);
+  return StyleSheet.create({
+    container: {
+      backgroundColor: c.surface,
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+      padding: space.lg,
+    },
+    overline: { ...T.overline },
+    summaryRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      marginTop: space.sm,
+      marginBottom: space.sm,
+    },
+    summaryTitle: { ...T.heading },
+    summaryPct: { fontFamily: font.serif, fontSize: 24, color: c.bronze },
+    summaryHint: { ...T.caption, marginTop: space.sm, marginBottom: space.lg },
 
-  timeline: { marginTop: space.xs },
-  row: { flexDirection: 'row' },
-  rail: { width: NODE, alignItems: 'center' },
-  connector: {
-    flex: 1,
-    width: StyleSheet.hairlineWidth * 2,
-    backgroundColor: color.hairline,
-    marginVertical: 3,
-  },
-  connectorDone: { backgroundColor: color.emerald },
+    timeline: { marginTop: space.xs },
+    row: { flexDirection: 'row' },
+    rail: { width: NODE, alignItems: 'center' },
+    connector: {
+      flex: 1,
+      width: StyleSheet.hairlineWidth * 2,
+      backgroundColor: c.hairline,
+      marginVertical: 3,
+    },
+    connectorDone: { backgroundColor: c.emerald },
 
-  node: {
-    width: NODE,
-    height: NODE,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nodeDone: { backgroundColor: color.emerald },
-  nodeTick: { color: color.surface, fontSize: 10, fontWeight: '700' },
-  nodeActive: { backgroundColor: color.gold },
-  nodeUpcoming: {
-    borderWidth: 1,
-    borderColor: color.inkFaint,
-    backgroundColor: color.surface,
-  },
+    node: {
+      width: NODE,
+      height: NODE,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    nodeDone: { backgroundColor: c.emerald },
+    nodeTick: { color: c.surface, fontSize: 10, fontWeight: '700' },
+    nodeActive: { backgroundColor: c.gold },
+    nodeUpcoming: {
+      borderWidth: 1,
+      borderColor: c.inkFaint,
+      backgroundColor: c.surface,
+    },
 
-  rowBody: { flex: 1, marginLeft: space.md },
-  rowBodySpacing: { paddingBottom: space.lg },
-  rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  rowTitle: { ...type.body, fontWeight: '600', flex: 1, paddingRight: space.sm },
-  rowTitleMuted: { color: color.inkFaint, fontWeight: '400' },
-  rowDate: { ...type.financial, fontSize: 12, color: color.inkMuted },
-  rowStatus: { ...type.caption, fontSize: 11, marginTop: 1 },
+    rowBody: { flex: 1, marginLeft: space.md },
+    rowBodySpacing: { paddingBottom: space.lg },
+    rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+    rowTitle: { ...T.body, fontWeight: '600', flex: 1, paddingRight: space.sm },
+    rowTitleMuted: { color: c.inkFaint, fontWeight: '400' },
+    rowDate: { ...T.financial, fontSize: 12, color: c.inkMuted },
+    rowStatus: { ...T.caption, fontSize: 11, marginTop: 1 },
 
-  detail: {
-    marginTop: space.sm,
-    paddingLeft: space.sm,
-    borderLeftWidth: 2,
-    borderLeftColor: color.surfaceMuted,
-  },
-  detailText: { ...type.body, color: color.inkMuted, fontSize: 13, lineHeight: 19 },
-  videoChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: space.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.bronze,
-    borderRadius: radius.sm,
-    paddingHorizontal: space.sm,
-    paddingVertical: 4,
-  },
-  videoChipGlyph: { color: color.bronze, fontSize: 8, marginRight: 6 },
-  videoChipText: {
-    fontFamily: font.sans,
-    fontSize: 9,
-    letterSpacing: 1.1,
-    color: color.bronze,
-    fontWeight: '600',
-  },
-});
+    detail: {
+      marginTop: space.sm,
+      paddingLeft: space.sm,
+      borderLeftWidth: 2,
+      borderLeftColor: c.surfaceMuted,
+    },
+    detailText: { ...T.body, color: c.inkMuted, fontSize: 13, lineHeight: 19 },
+    videoChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      marginTop: space.sm,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.bronze,
+      borderRadius: radius.sm,
+      paddingHorizontal: space.sm,
+      paddingVertical: 4,
+    },
+    videoChipGlyph: { color: c.bronze, fontSize: 8, marginRight: 6 },
+    videoChipText: {
+      fontFamily: font.sans,
+      fontSize: 9,
+      letterSpacing: 1.1,
+      color: c.bronze,
+      fontWeight: '600',
+    },
+  });
+};

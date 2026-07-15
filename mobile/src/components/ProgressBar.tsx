@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { color } from '../theme/tokens';
+import { useTheme } from '../theme/ThemeContext';
 
 interface Props {
   /** 0..1 */
   progress: number;
   height?: number;
+  /** Defaults to the palette's emerald (growth). */
   fillColor?: string;
+  /** Defaults to the palette's muted surface. */
   trackColor?: string;
 }
 
@@ -14,12 +16,8 @@ interface Props {
  * Thin, precise progress bar. Fills with a slow, whisper-quiet ease —
  * no bounce, no overshoot — per the premium micro-interaction guidelines.
  */
-export function ProgressBar({
-  progress,
-  height = 3,
-  fillColor = color.emerald,
-  trackColor = color.surfaceMuted,
-}: Props) {
+export function ProgressBar({ progress, height = 3, fillColor, trackColor }: Props) {
+  const { palette } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -32,12 +30,17 @@ export function ProgressBar({
   }, [progress, anim]);
 
   return (
-    <View style={[styles.track, { height, backgroundColor: trackColor }]}>
+    <View
+      style={[
+        styles.track,
+        { height, backgroundColor: trackColor ?? palette.surfaceMuted },
+      ]}
+    >
       <Animated.View
         style={[
           styles.fill,
           {
-            backgroundColor: fillColor,
+            backgroundColor: fillColor ?? palette.emerald,
             width: anim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
           },
         ]}

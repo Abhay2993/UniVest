@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Startup } from '../types';
-import { color, font, radius, space, type } from '../theme/tokens';
+import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
+import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatMoney, formatMoneyCompact, formatPct } from '../utils/format';
+import { BookmarkButton } from '../components/BookmarkButton';
 import { MilestoneTracker } from '../components/MilestoneTracker';
 import { ProgressBar } from '../components/ProgressBar';
 import { VerifiedBadge } from '../components/VerifiedBadge';
@@ -27,6 +29,8 @@ interface Props {
  * confirmation on commit.
  */
 export function StartupDetailScreen({ startup, onBack }: Props) {
+  const { palette } = useTheme();
+  const s = useThemedStyles(makeStyles);
   const [tab, setTab] = useState<PitchTab>('plain');
   const [committed, setCommitted] = useState(false);
   const progress = startup.raisedAmount / startup.targetAmount;
@@ -45,209 +49,222 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
   };
 
   return (
-    <View style={styles.screen}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back to discovery feed">
-            <Text style={styles.back}>← Discovery</Text>
-          </Pressable>
+    <View style={s.screen}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+        <View style={s.hero}>
+          <View style={s.heroTopRow}>
+            <Pressable onPress={onBack} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back to discovery feed">
+              <Text style={s.back}>← Discovery</Text>
+            </Pressable>
+            <BookmarkButton startup={startup} size={20} inactiveColor={palette.onNavyMuted} />
+          </View>
 
-          <Text style={styles.vertical}>{startup.vertical}</Text>
-          <Text style={styles.name}>{startup.name}</Text>
-          <Text style={styles.university}>
+          <Text style={s.vertical}>{startup.vertical}</Text>
+          <Text style={s.name}>{startup.name}</Text>
+          <Text style={s.university}>
             {startup.university.name} · {startup.university.country}
           </Text>
           {startup.verified && (
-            <View style={styles.badgeRow}>
+            <View style={s.badgeRow}>
               <VerifiedBadge />
             </View>
           )}
         </View>
 
         {/* Funding summary */}
-        <View style={styles.card}>
-          <Text style={type.overline}>Offering</Text>
-          <View style={styles.raiseRow}>
-            <Text style={styles.raised}>{formatMoney(startup.raisedAmount)}</Text>
-            <Text style={styles.pct}>{formatPct(progress)} funded</Text>
+        <View style={s.card}>
+          <Text style={s.overline}>Offering</Text>
+          <View style={s.raiseRow}>
+            <Text style={s.raised}>{formatMoney(startup.raisedAmount)}</Text>
+            <Text style={s.pct}>{formatPct(progress)} funded</Text>
           </View>
           <ProgressBar progress={progress} height={4} />
-          <View style={styles.fundMetaRow}>
+          <View style={s.fundMetaRow}>
             <FundMeta label="Target" value={formatMoneyCompact(startup.targetAmount)} />
             <FundMeta label="Investors" value={startup.investorCount.toLocaleString('en-US')} />
             <FundMeta label="Min. Ticket" value={formatMoneyCompact(startup.minInvestment)} />
             <FundMeta label="Closes In" value={`${startup.daysLeft} days`} />
           </View>
-          <Text style={styles.lead}>
-            Anchored by <Text style={styles.leadName}>{startup.leadInvestor}</Text> · SPV structure —
+          <Text style={s.lead}>
+            Anchored by <Text style={s.leadName}>{startup.leadInvestor}</Text> · SPV structure —
             one line on the cap table
           </Text>
         </View>
 
         {/* AI Layman Pitch Deck */}
-        <View style={styles.card}>
-          <Text style={type.overline}>AI Research Briefing</Text>
-          <View style={styles.tabRow}>
+        <View style={s.card}>
+          <Text style={s.overline}>AI Research Briefing</Text>
+          <View style={s.tabRow}>
             {PITCH_TABS.map(({ key, label }) => (
               <Pressable
                 key={key}
                 onPress={() => setTab(key)}
-                style={[styles.tab, tab === key && styles.tabActive]}
+                style={[s.tab, tab === key && s.tabActive]}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: tab === key }}
               >
-                <Text style={[styles.tabText, tab === key && styles.tabTextActive]}>{label}</Text>
+                <Text style={[s.tabText, tab === key && s.tabTextActive]}>{label}</Text>
               </Pressable>
             ))}
           </View>
-          <Text style={styles.pitchText}>{pitchText}</Text>
-          <Text style={styles.pitchDisclaimer}>
+          <Text style={s.pitchText}>{pitchText}</Text>
+          <Text style={s.pitchDisclaimer}>
             Generated from the founding team's peer-reviewed publications. Not investment advice.
           </Text>
         </View>
 
         {/* Visual Milestone Tracker */}
-        <View style={styles.trackerWrap}>
+        <View style={s.trackerWrap}>
           <MilestoneTracker milestones={startup.milestones} />
         </View>
       </ScrollView>
 
       {/* Invest CTA — champagne gold, reserved for the primary action */}
-      <View style={styles.ctaBar}>
+      <View style={s.ctaBar}>
         <Pressable
           onPress={confirmInvestment}
           disabled={committed}
-          style={({ pressed }) => [
-            styles.cta,
-            pressed && styles.ctaPressed,
-            committed && styles.ctaDone,
-          ]}
+          style={({ pressed }) => [s.cta, pressed && s.ctaPressed, committed && s.ctaDone]}
           accessibilityRole="button"
           accessibilityLabel={`Invest in ${startup.name}, minimum ${formatMoney(startup.minInvestment)}`}
         >
-          <Text style={[styles.ctaText, committed && styles.ctaTextDone]}>
+          <Text style={[s.ctaText, committed && s.ctaTextDone]}>
             {committed
               ? '✓ Commitment Reserved'
               : `Invest — from ${formatMoney(startup.minInvestment)}`}
           </Text>
         </Pressable>
-        <Text style={styles.ctaFootnote}>
+        <Text style={s.ctaFootnote}>
           1.5% SPV admin fee applies · subject to your suitability limit
         </Text>
       </View>
     </View>
   );
+
+  function FundMeta({ label, value }: { label: string; value: string }) {
+    return (
+      <View style={s.fundMeta}>
+        <Text style={s.fundMetaValue}>{value}</Text>
+        <Text style={s.fundMetaLabel}>{label}</Text>
+      </View>
+    );
+  }
 }
 
-function FundMeta({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.fundMeta}>
-      <Text style={styles.fundMetaValue}>{value}</Text>
-      <Text style={styles.fundMetaLabel}>{label}</Text>
-    </View>
-  );
-}
+const makeStyles = (c: Palette) => {
+  const T = typeStyles(c);
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: c.background },
+    content: { paddingBottom: space.xl },
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: color.background },
-  content: { paddingBottom: space.xl },
+    hero: {
+      backgroundColor: c.navy,
+      paddingTop: space.xxl + space.sm,
+      paddingHorizontal: space.lg,
+      paddingBottom: space.xl,
+      marginBottom: space.lg,
+    },
+    heroTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: space.lg,
+    },
+    back: { fontFamily: font.sans, fontSize: 13, color: c.onNavyMuted },
+    vertical: {
+      fontFamily: font.sans,
+      fontSize: 11,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+      color: c.gold,
+      marginBottom: space.sm,
+    },
+    name: { fontFamily: font.serif, fontSize: 30, lineHeight: 40, color: c.onNavy },
+    university: { fontFamily: font.sans, fontSize: 13, color: c.onNavyMuted, marginTop: space.xs },
+    badgeRow: { flexDirection: 'row', marginTop: space.md },
 
-  hero: {
-    backgroundColor: color.navy,
-    paddingTop: space.xxl + space.sm,
-    paddingHorizontal: space.lg,
-    paddingBottom: space.xl,
-    marginBottom: space.lg,
-  },
-  back: { fontFamily: font.sans, fontSize: 13, color: color.onNavyMuted, marginBottom: space.lg },
-  vertical: {
-    fontFamily: font.sans,
-    fontSize: 11,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    color: color.gold,
-    marginBottom: space.sm,
-  },
-  name: { fontFamily: font.serif, fontSize: 30, lineHeight: 37, color: color.onNavy },
-  university: { fontFamily: font.sans, fontSize: 13, color: color.onNavyMuted, marginTop: space.xs },
-  badgeRow: { flexDirection: 'row', marginTop: space.md },
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.hairline,
+      padding: space.lg,
+      marginHorizontal: space.md,
+      marginBottom: space.md,
+    },
+    overline: { ...T.overline },
+    raiseRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      marginTop: space.sm,
+      marginBottom: space.sm,
+    },
+    raised: {
+      fontFamily: font.sans,
+      fontSize: 24,
+      fontWeight: '600',
+      color: c.ink,
+      ...tabularNums,
+    },
+    pct: { ...T.financial, color: c.emerald, fontWeight: '600' },
+    fundMetaRow: { flexDirection: 'row', marginTop: space.md },
+    fundMeta: { flex: 1 },
+    fundMetaValue: { ...T.financial, fontWeight: '600', fontSize: 13 },
+    fundMetaLabel: {
+      ...T.caption,
+      fontSize: 9,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      marginTop: 1,
+    },
+    lead: { ...T.caption, marginTop: space.md },
+    leadName: { color: c.ink, fontWeight: '600' },
 
-  card: {
-    backgroundColor: color.surface,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.hairline,
-    padding: space.lg,
-    marginHorizontal: space.md,
-    marginBottom: space.md,
-  },
-  raiseRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginTop: space.sm,
-    marginBottom: space.sm,
-  },
-  raised: {
-    fontFamily: font.sans,
-    fontSize: 24,
-    fontWeight: '600',
-    color: color.ink,
-    fontVariant: ['tabular-nums'],
-  },
-  pct: { ...type.financial, color: color.emerald, fontWeight: '600' },
-  fundMetaRow: { flexDirection: 'row', marginTop: space.md },
-  fundMeta: { flex: 1 },
-  fundMetaValue: { ...type.financial, fontWeight: '600', fontSize: 13 },
-  fundMetaLabel: {
-    ...type.caption,
-    fontSize: 9,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginTop: 1,
-  },
-  lead: { ...type.caption, marginTop: space.md },
-  leadName: { color: color.ink, fontWeight: '600' },
+    tabRow: {
+      flexDirection: 'row',
+      marginTop: space.md,
+      marginBottom: space.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.hairline,
+    },
+    tab: { paddingVertical: space.sm, marginRight: space.lg },
+    tabActive: {
+      borderBottomWidth: 2,
+      borderBottomColor: c.bronze,
+      marginBottom: -StyleSheet.hairlineWidth,
+    },
+    tabText: { fontFamily: font.sans, fontSize: 12, color: c.inkMuted },
+    tabTextActive: { color: c.ink, fontWeight: '600' },
+    pitchText: { ...T.body, fontSize: 15, lineHeight: 24 },
+    pitchDisclaimer: { ...T.caption, fontSize: 10, marginTop: space.md, color: c.inkFaint },
 
-  tabRow: {
-    flexDirection: 'row',
-    marginTop: space.md,
-    marginBottom: space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: color.hairline,
-  },
-  tab: { paddingVertical: space.sm, marginRight: space.lg },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: color.bronze, marginBottom: -StyleSheet.hairlineWidth },
-  tabText: { fontFamily: font.sans, fontSize: 12, color: color.inkMuted },
-  tabTextActive: { color: color.ink, fontWeight: '600' },
-  pitchText: { ...type.body, fontSize: 15, lineHeight: 24 },
-  pitchDisclaimer: { ...type.caption, fontSize: 10, marginTop: space.md, color: color.inkFaint },
+    trackerWrap: { marginHorizontal: space.md, marginBottom: space.md },
 
-  trackerWrap: { marginHorizontal: space.md, marginBottom: space.md },
-
-  ctaBar: {
-    backgroundColor: color.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: color.hairline,
-    paddingHorizontal: space.lg,
-    paddingTop: space.md,
-    paddingBottom: space.xl,
-  },
-  cta: {
-    backgroundColor: color.gold,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    paddingVertical: 14,
-  },
-  ctaPressed: { opacity: 0.9 },
-  ctaDone: { backgroundColor: color.navy },
-  ctaText: {
-    fontFamily: font.sans,
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    color: color.navy,
-  },
-  ctaTextDone: { color: color.gold },
-  ctaFootnote: { ...type.caption, fontSize: 10, textAlign: 'center', marginTop: space.sm },
-});
+    ctaBar: {
+      backgroundColor: c.surface,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.hairline,
+      paddingHorizontal: space.lg,
+      paddingTop: space.md,
+      paddingBottom: space.xl,
+    },
+    cta: {
+      backgroundColor: c.gold,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      paddingVertical: 14,
+    },
+    ctaPressed: { opacity: 0.9 },
+    ctaDone: { backgroundColor: c.navy },
+    ctaText: {
+      fontFamily: font.sans,
+      fontSize: 14,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      color: '#0A192F',
+    },
+    ctaTextDone: { color: c.gold },
+    ctaFootnote: { ...T.caption, fontSize: 10, textAlign: 'center', marginTop: space.sm },
+  });
+};

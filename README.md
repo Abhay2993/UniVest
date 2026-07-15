@@ -16,7 +16,7 @@ framework.
 | --- | --- |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System architecture diagrams (component + investment sequence flow) and security model |
 | [`backend/db/schema.sql`](backend/db/schema.sql) | PostgreSQL schema — users, startups, campaigns, investments, SPVs, secondary trades, revenue ledger, Row-Level Security policies |
-| [`mobile/`](mobile/) | React Native (TypeScript, Expo) app — Global Discovery Feed + interactive Visual Milestone Tracker |
+| [`mobile/`](mobile/) | React Native (TypeScript, Expo) app — Global Discovery Feed, interactive Research Map, Visual Milestone Tracker, watchlists with closing-soon alerts |
 
 ## Core Modules
 
@@ -43,12 +43,32 @@ framework.
 | Carried interest | 15% of investor capital profits at exit | `spvs.carry_pct`, `carry_ledger` |
 | University SaaS portal | Monthly tiered subscription | `tto_subscriptions` |
 
+## Mobile App Features
+
+- **Global Discovery Feed** — active spinout offerings filterable by academic
+  vertical, university, and watchlist, with animated funding progress.
+- **Global Research Map** — interactive world map (`react-native-maps`) with
+  university pins sized by active deal volume; tap a pin for the university's
+  raising volume and a route into its filtered offerings; follow universities
+  for new-deal alerts.
+- **Visual Milestone Tracker** — the "Lab Progress Bar": expandable milestone
+  timeline with verified/in-progress/projected states and founder video-update
+  chips.
+- **AI Layman Pitch tabs** — *Plain English / Commercialization / The Lab Proof*.
+- **Watchlist + closing-soon alerts** — star any offering to persist it
+  (AsyncStorage) and schedule a local "closes in 48h" notification
+  (`expo-notifications`); unstarring cancels the alert.
+- **Dark mode** — full light/dark theming (`#050C16` charcoal per spec) that
+  follows the system, with an in-app AUTO → LIGHT → DARK override, persisted.
+- **Playfair Display serifs** — loaded via `expo-font` for display headers.
+
 ## Design Language
 
 Institutional / private-wealth aesthetic: deep navy `#0A192F`, champagne gold
-`#D4AF37` accents used sparingly, serif display headers, geometric sans-serif
-body with tabular numerals for financial figures, 4–8px border radii, generous
-whitespace. See [`mobile/src/theme/tokens.ts`](mobile/src/theme/tokens.ts).
+`#D4AF37` accents used sparingly, serif display headers (Playfair Display),
+geometric sans-serif body with tabular numerals for financial figures, 4–8px
+border radii, generous whitespace. Both light and dark palettes live in
+[`mobile/src/theme/tokens.ts`](mobile/src/theme/tokens.ts).
 
 ## Running the Mobile App
 

@@ -8,11 +8,11 @@ export const VERTICALS: Vertical[] = [
   'Advanced Materials',
 ];
 
-const mit: University = { id: 'u1', name: 'Massachusetts Institute of Technology', shortName: 'MIT', country: 'USA', activeDeals: 4 };
-const eth: University = { id: 'u2', name: 'ETH Zürich', shortName: 'ETH', country: 'CHE', activeDeals: 3 };
-const oxford: University = { id: 'u3', name: 'University of Oxford', shortName: 'Oxford', country: 'GBR', activeDeals: 2 };
-const tudelft: University = { id: 'u4', name: 'TU Delft', shortName: 'TU Delft', country: 'NLD', activeDeals: 2 };
-const kaist: University = { id: 'u5', name: 'KAIST', shortName: 'KAIST', country: 'KOR', activeDeals: 1 };
+const mit: University = { id: 'u1', name: 'Massachusetts Institute of Technology', shortName: 'MIT', country: 'USA', city: 'Cambridge', latitude: 42.3601, longitude: -71.0942, activeDeals: 4 };
+const eth: University = { id: 'u2', name: 'ETH Zürich', shortName: 'ETH', country: 'CHE', city: 'Zürich', latitude: 47.3763, longitude: 8.5481, activeDeals: 3 };
+const oxford: University = { id: 'u3', name: 'University of Oxford', shortName: 'Oxford', country: 'GBR', city: 'Oxford', latitude: 51.7548, longitude: -1.2544, activeDeals: 2 };
+const tudelft: University = { id: 'u4', name: 'TU Delft', shortName: 'TU Delft', country: 'NLD', city: 'Delft', latitude: 52.0022, longitude: 4.3736, activeDeals: 2 };
+const kaist: University = { id: 'u5', name: 'KAIST', shortName: 'KAIST', country: 'KOR', city: 'Daejeon', latitude: 36.3721, longitude: 127.3604, activeDeals: 1 };
 
 export const UNIVERSITIES: University[] = [mit, eth, oxford, tudelft, kaist];
 
