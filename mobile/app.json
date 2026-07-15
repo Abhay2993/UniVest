@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "UniVest",
+    "slug": "univest",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#0A192F",
+    "splash": {
+      "backgroundColor": "#0A192F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.univest.app"
+    },
+    "android": {
+      "package": "com.univest.app"
+    }
+  }
+}

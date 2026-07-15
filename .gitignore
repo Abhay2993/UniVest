@@ -1,0 +1,10 @@
+# Node / Expo
+node_modules/
+package-lock.json
+.expo/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# OS
+.DS_Store
