@@ -40,6 +40,11 @@ export interface Palette {
   projection: string;
   amber: string;
   danger: string;
+  /**
+   * Categorical chart palette (fixed assignment order, never cycled) —
+   * validated per-surface with the dataviz six-checks script.
+   */
+  chartCategorical: readonly [string, string, string, string];
 }
 
 export const lightPalette: Palette = {
@@ -68,6 +73,7 @@ export const lightPalette: Palette = {
   projection: '#4A6E96',
   amber: '#B0821F',
   danger: '#9B3B3B',
+  chartCategorical: ['#3E6FB0', '#B8860B', '#7D5BA6', '#1B7A55'],
 };
 
 export const darkPalette: Palette = {
@@ -96,6 +102,7 @@ export const darkPalette: Palette = {
   projection: '#7A9CC4',
   amber: '#C9971F',
   danger: '#C05B5B',
+  chartCategorical: ['#5B8AD1', '#B08410', '#9C77C4', '#2FA97C'],
 };
 
 export const font = {

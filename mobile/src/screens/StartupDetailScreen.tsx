@@ -5,6 +5,7 @@ import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatMoneyCompact, formatPct, formatMoney } from '../utils/format';
 import { BookmarkButton } from '../components/BookmarkButton';
+import { CopilotCard } from '../components/CopilotCard';
 import { InvestPanel } from '../components/InvestPanel';
 import { MilestoneTracker } from '../components/MilestoneTracker';
 import { ProgressBar } from '../components/ProgressBar';
@@ -105,6 +106,11 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
           <Text style={s.pitchDisclaimer}>
             Generated from the founding team's peer-reviewed publications. Not investment advice.
           </Text>
+        </View>
+
+        {/* Diligence Copilot — grounded Q&A over the data room */}
+        <View style={s.trackerWrap}>
+          <CopilotCard startup={startup} />
         </View>
 
         {/* Visual Milestone Tracker */}

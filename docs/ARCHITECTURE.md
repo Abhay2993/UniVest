@@ -142,7 +142,29 @@ sequenceDiagram
   warning threshold require an acknowledgement that is audit-trailed in
   `suitability_acknowledgements`.
 
-## 5. Technology Choices
+## 5. Markets & Intelligence Layer
+
+- **Batch auctions** — the Secondary Market Service runs monthly
+  uniform-price windows per SPV (`auction_windows`/`auction_orders`). At the
+  close, `clear_auction()` picks the price maximizing executed volume
+  (midpoint of the max-volume plateau on ties) and fills eligible orders in
+  price-time priority; settlement then writes `secondary_trades` rows and
+  instructs the custody provider. One price per window means cleaner NAV
+  marks and carry accounting than a thin continuous book.
+- **Diligence Copilot** — the AI Translation Service indexes each deal's
+  `data_room_documents` and answers investor questions with retrieval +
+  generation (Claude API). Every exchange is stored in `copilot_exchanges`
+  with its citations; questions the data room cannot ground are declined and
+  routed to the deal's public Q&A.
+- **Portfolio analytics** — fund-administrator NAV marks land in
+  `spv_valuations`; the `investor_position_metrics` view exposes unrealized
+  value and multiples, while the analytics service computes XIRR/TVPI from
+  actual cash-flow dates. K-1s are distributed through `tax_documents`.
+- **Auto-Invest DCA** — `auto_invest_mandates` gains a `monthly_budget` mode:
+  the Investment Service allocates the budget evenly across qualifying new
+  deals each window, always inside the investor's Reg CF limit.
+
+## 6. Technology Choices
 
 | Layer | Choice | Rationale |
 | --- | --- | --- |

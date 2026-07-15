@@ -11,15 +11,18 @@ import { lightPalette } from './src/theme/tokens';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { PortfolioProvider } from './src/state/PortfolioContext';
 import { WatchlistProvider } from './src/state/WatchlistContext';
+import { Tab, TabBar } from './src/components/TabBar';
 import { DiscoveryFeedScreen } from './src/screens/DiscoveryFeedScreen';
+import { MarketsScreen } from './src/screens/MarketsScreen';
+import { PortfolioScreen } from './src/screens/PortfolioScreen';
 import { StartupDetailScreen } from './src/screens/StartupDetailScreen';
+import { ToolsScreen } from './src/screens/ToolsScreen';
 
 /**
- * Root of the UniVest demo app. Deliberately dependency-light: a single
- * piece of navigation state moves between the Global Discovery Feed
- * (list + research map) and a startup's detail view (pitch + Visual
- * Milestone Tracker). Swap for react-navigation once the full route map
- * lands.
+ * Root of the UniVest demo app: four text-tab sections (Discover, Portfolio,
+ * Markets, Tools) with a startup detail view layered over any of them.
+ * Deliberately dependency-light; swap for react-navigation once the full
+ * route map lands.
  */
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -45,6 +48,7 @@ export default function App() {
 
 function Root() {
   const { palette } = useTheme();
+  const [tab, setTab] = useState<Tab>('discover');
   const [selected, setSelected] = useState<Startup | null>(null);
 
   return (
@@ -53,7 +57,15 @@ function Root() {
       {selected ? (
         <StartupDetailScreen startup={selected} onBack={() => setSelected(null)} />
       ) : (
-        <DiscoveryFeedScreen onSelectStartup={setSelected} />
+        <>
+          <View style={styles.body}>
+            {tab === 'discover' && <DiscoveryFeedScreen onSelectStartup={setSelected} />}
+            {tab === 'portfolio' && <PortfolioScreen onSelectStartup={setSelected} />}
+            {tab === 'markets' && <MarketsScreen />}
+            {tab === 'tools' && <ToolsScreen />}
+          </View>
+          <TabBar active={tab} onChange={setTab} />
+        </>
       )}
     </View>
   );
@@ -61,5 +73,6 @@ function Root() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  body: { flex: 1 },
   splash: { flex: 1, backgroundColor: lightPalette.navy },
 });

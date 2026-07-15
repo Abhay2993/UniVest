@@ -32,6 +32,10 @@ CREATE TYPE saas_tier          AS ENUM ('starter', 'portfolio', 'enterprise');
 CREATE TYPE mandate_status     AS ENUM ('active', 'paused', 'revoked');
 CREATE TYPE attestor_role      AS ENUM ('tto', 'independent_reviewer');
 CREATE TYPE ack_kind           AS ENUM ('concentration_warning', 'risk_disclosure');
+CREATE TYPE mandate_mode       AS ENUM ('per_deal', 'monthly_budget');
+CREATE TYPE auction_status     AS ENUM ('scheduled', 'open', 'cleared', 'settled', 'cancelled');
+CREATE TYPE order_side         AS ENUM ('buy', 'sell');
+CREATE TYPE order_status       AS ENUM ('open', 'filled', 'partially_filled', 'unfilled', 'cancelled');
 
 -- ----------------------------------------------------------------------------
 -- Users (retail investors, institutional leads, TTO officers, admins)
@@ -325,18 +329,27 @@ CREATE TABLE syndicates (
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Retail pre-authorization: "automatically match my funds behind this lead"
+-- Retail pre-authorization. Two modes:
+--   per_deal       — "match my funds behind this lead, $X per qualifying deal"
+--   monthly_budget — deep-tech DCA: a fixed monthly budget spread evenly
+--                    across all new qualifying deals (syndicate optional)
 CREATE TABLE auto_invest_mandates (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id          UUID           NOT NULL REFERENCES users(id),
-    syndicate_id     UUID           NOT NULL REFERENCES syndicates(id),
+    syndicate_id     UUID           REFERENCES syndicates(id),  -- NULL = platform-wide DCA
     status           mandate_status NOT NULL DEFAULT 'active',
-    per_deal_amount  NUMERIC(18,2)  NOT NULL CHECK (per_deal_amount > 0),
+    mode             mandate_mode   NOT NULL DEFAULT 'per_deal',
+    per_deal_amount  NUMERIC(18,2)  CHECK (per_deal_amount > 0),
+    monthly_budget   NUMERIC(18,2)  CHECK (monthly_budget > 0),
     monthly_cap      NUMERIC(18,2),
     verticals        TEXT[],                                    -- optional filter, e.g. '{Fusion Energy}'
     created_at       TIMESTAMPTZ    NOT NULL DEFAULT now(),
     revoked_at       TIMESTAMPTZ,
-    UNIQUE (user_id, syndicate_id)
+    UNIQUE (user_id, syndicate_id),
+    CONSTRAINT chk_mandate_mode CHECK (
+        (mode = 'per_deal'       AND per_deal_amount IS NOT NULL) OR
+        (mode = 'monthly_budget' AND monthly_budget  IS NOT NULL)
+    )
 );
 
 ALTER TABLE investments
@@ -367,6 +380,237 @@ CREATE TABLE secondary_trades (
 
     CONSTRAINT chk_no_self_trade CHECK (buyer_id IS NULL OR buyer_id <> seller_id)
 );
+
+-- ----------------------------------------------------------------------------
+-- Batch auctions (Liquidity Engine v2)
+-- Thin continuous order books gap wildly; instead, orders accumulate inside a
+-- window and clear at one uniform price that maximizes executed volume
+-- (midpoint of the max-volume price range on ties). Fairer marks, less
+-- volatility, cleaner carry accounting. Settlement writes secondary_trades
+-- rows and instructs the custody provider, as in the continuous flow.
+-- ----------------------------------------------------------------------------
+CREATE TABLE auction_windows (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    spv_id          UUID           NOT NULL REFERENCES spvs(id),
+    opens_at        TIMESTAMPTZ    NOT NULL,
+    closes_at       TIMESTAMPTZ    NOT NULL,
+    status          auction_status NOT NULL DEFAULT 'scheduled',
+    clearing_price  NUMERIC(18,6),
+    cleared_units   NUMERIC(24,6),
+    cleared_at      TIMESTAMPTZ,
+    CONSTRAINT chk_auction_window CHECK (closes_at > opens_at)
+);
+
+CREATE TABLE auction_orders (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    window_id     UUID          NOT NULL REFERENCES auction_windows(id) ON DELETE CASCADE,
+    user_id       UUID          NOT NULL REFERENCES users(id),
+    side          order_side    NOT NULL,
+    units         NUMERIC(24,6) NOT NULL CHECK (units > 0),
+    limit_price   NUMERIC(18,6) NOT NULL CHECK (limit_price > 0),
+    filled_units  NUMERIC(24,6) NOT NULL DEFAULT 0,
+    status        order_status  NOT NULL DEFAULT 'open',
+    created_at    TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+
+-- Uniform-price clearing: picks the price maximizing min(demand, supply),
+-- midpoint of the max-volume plateau on ties, then fills eligible orders in
+-- price-time priority. Returns (clearing price, cleared units).
+CREATE OR REPLACE FUNCTION clear_auction(p_window_id UUID)
+RETURNS TABLE (o_price NUMERIC, o_units NUMERIC) AS $$
+DECLARE
+    v_best_volume NUMERIC := 0;
+    v_price_lo    NUMERIC;
+    v_price_hi    NUMERIC;
+    v_price       NUMERIC;
+    v_demand      NUMERIC;
+    v_supply      NUMERIC;
+    v_fill        NUMERIC;
+    v_remaining   NUMERIC;
+    cand          RECORD;
+    r             RECORD;
+BEGIN
+    PERFORM 1 FROM auction_windows w WHERE w.id = p_window_id AND w.status = 'open';
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'auction window % is not open', p_window_id;
+    END IF;
+
+    FOR cand IN
+        SELECT DISTINCT ao.limit_price AS p
+          FROM auction_orders ao
+         WHERE ao.window_id = p_window_id AND ao.status = 'open'
+         ORDER BY 1
+    LOOP
+        SELECT COALESCE(SUM(ao.units), 0) INTO v_demand
+          FROM auction_orders ao
+         WHERE ao.window_id = p_window_id AND ao.status = 'open'
+           AND ao.side = 'buy' AND ao.limit_price >= cand.p;
+        SELECT COALESCE(SUM(ao.units), 0) INTO v_supply
+          FROM auction_orders ao
+         WHERE ao.window_id = p_window_id AND ao.status = 'open'
+           AND ao.side = 'sell' AND ao.limit_price <= cand.p;
+
+        IF LEAST(v_demand, v_supply) > v_best_volume THEN
+            v_best_volume := LEAST(v_demand, v_supply);
+            v_price_lo := cand.p;
+            v_price_hi := cand.p;
+        ELSIF LEAST(v_demand, v_supply) = v_best_volume AND v_best_volume > 0 THEN
+            v_price_hi := cand.p;   -- max-volume plateau is contiguous
+        END IF;
+    END LOOP;
+
+    IF v_best_volume = 0 THEN
+        UPDATE auction_orders SET status = 'unfilled'
+         WHERE window_id = p_window_id AND status = 'open';
+        UPDATE auction_windows
+           SET status = 'cleared', clearing_price = NULL, cleared_units = 0, cleared_at = now()
+         WHERE id = p_window_id;
+        RETURN QUERY SELECT NULL::NUMERIC, 0::NUMERIC;
+        RETURN;
+    END IF;
+
+    v_price := ROUND((v_price_lo + v_price_hi) / 2, 6);
+
+    -- Buy side: best price first, then time priority.
+    v_remaining := v_best_volume;
+    FOR r IN
+        SELECT ao.id, ao.units FROM auction_orders ao
+         WHERE ao.window_id = p_window_id AND ao.status = 'open'
+           AND ao.side = 'buy' AND ao.limit_price >= v_price
+         ORDER BY ao.limit_price DESC, ao.created_at
+    LOOP
+        EXIT WHEN v_remaining <= 0;
+        v_fill := LEAST(r.units, v_remaining);
+        UPDATE auction_orders
+           SET filled_units = v_fill,
+               status = CASE WHEN v_fill = r.units THEN 'filled' ELSE 'partially_filled' END::order_status
+         WHERE id = r.id;
+        v_remaining := v_remaining - v_fill;
+    END LOOP;
+
+    -- Sell side: lowest price first, then time priority.
+    v_remaining := v_best_volume;
+    FOR r IN
+        SELECT ao.id, ao.units FROM auction_orders ao
+         WHERE ao.window_id = p_window_id AND ao.status = 'open'
+           AND ao.side = 'sell' AND ao.limit_price <= v_price
+         ORDER BY ao.limit_price ASC, ao.created_at
+    LOOP
+        EXIT WHEN v_remaining <= 0;
+        v_fill := LEAST(r.units, v_remaining);
+        UPDATE auction_orders
+           SET filled_units = v_fill,
+               status = CASE WHEN v_fill = r.units THEN 'filled' ELSE 'partially_filled' END::order_status
+         WHERE id = r.id;
+        v_remaining := v_remaining - v_fill;
+    END LOOP;
+
+    UPDATE auction_orders SET status = 'unfilled'
+     WHERE window_id = p_window_id AND status = 'open';
+    UPDATE auction_windows
+       SET status = 'cleared', clearing_price = v_price,
+           cleared_units = v_best_volume, cleared_at = now()
+     WHERE id = p_window_id;
+
+    RETURN QUERY SELECT v_price, v_best_volume;
+END $$ LANGUAGE plpgsql;
+
+-- ----------------------------------------------------------------------------
+-- Portfolio analytics & tax center
+-- ----------------------------------------------------------------------------
+-- Periodic NAV marks per SPV (quarterly 409A-style or event-driven).
+CREATE TABLE spv_valuations (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    spv_id        UUID          NOT NULL REFERENCES spvs(id),
+    as_of         DATE          NOT NULL,
+    nav_per_unit  NUMERIC(18,6) NOT NULL CHECK (nav_per_unit >= 0),
+    source        TEXT          NOT NULL DEFAULT 'quarterly_mark',
+    UNIQUE (spv_id, as_of)
+);
+
+-- K-1s and friends: generated by the fund administrator each March,
+-- surfaced in the app's Tax Document Center.
+CREATE TABLE tax_documents (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID        NOT NULL REFERENCES users(id),
+    spv_id       UUID        REFERENCES spvs(id),
+    tax_year     SMALLINT    NOT NULL,
+    kind         TEXT        NOT NULL DEFAULT 'schedule_k1',
+    storage_url  TEXT,
+    issued_at    TIMESTAMPTZ,
+    UNIQUE (user_id, spv_id, tax_year, kind)
+);
+
+-- Unrealized position metrics from the latest NAV mark (IRR/TVPI with
+-- distributions are computed by the analytics service, which also has the
+-- cash-flow dates).
+CREATE VIEW investor_position_metrics AS
+SELECT h.user_id,
+       h.spv_id,
+       h.units,
+       h.cost_basis,
+       v.nav_per_unit,
+       v.as_of                                          AS marked_as_of,
+       ROUND(h.units * v.nav_per_unit, 2)               AS current_value,
+       ROUND(h.units * v.nav_per_unit / NULLIF(h.cost_basis, 0), 2) AS unrealized_multiple
+  FROM spv_holdings h
+  JOIN LATERAL (
+        SELECT sv.nav_per_unit, sv.as_of
+          FROM spv_valuations sv
+         WHERE sv.spv_id = h.spv_id
+         ORDER BY sv.as_of DESC
+         LIMIT 1
+       ) v ON TRUE;
+
+-- ----------------------------------------------------------------------------
+-- Diligence Copilot (data room + grounded Q&A)
+-- ----------------------------------------------------------------------------
+CREATE TABLE data_room_documents (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id  UUID        NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    title        TEXT        NOT NULL,                          -- "Exclusive License Agreement"
+    kind         TEXT        NOT NULL,                          -- 'license' | 'financials' | 'technical' | ...
+    storage_url  TEXT,
+    sha256       BYTEA,
+    uploaded_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Every copilot exchange is stored with its citations so answers are
+-- auditable: [{document_id, section, quote}]. The AI Translation Service
+-- performs the retrieval + generation (Claude API) and refuses questions the
+-- data room cannot ground.
+CREATE TABLE copilot_exchanges (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID        NOT NULL REFERENCES users(id),
+    campaign_id  UUID        NOT NULL REFERENCES campaigns(id),
+    question     TEXT        NOT NULL,
+    answer       TEXT        NOT NULL,
+    citations    JSONB       NOT NULL DEFAULT '[]',
+    model        TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ----------------------------------------------------------------------------
+-- University leaderboard (public marketing surface + SaaS upsell)
+-- ----------------------------------------------------------------------------
+CREATE VIEW university_leaderboard AS
+SELECT u.id,
+       u.name,
+       u.country_code,
+       (SELECT COUNT(*) FROM startups s
+         JOIN campaigns c ON c.startup_id = s.id AND c.status IN ('live', 'funded', 'closed')
+        WHERE s.university_id = u.id)                                        AS spinouts_funded,
+       (SELECT COALESCE(SUM(c.raised_amount), 0) FROM startups s
+         JOIN campaigns c ON c.startup_id = s.id
+        WHERE s.university_id = u.id)                                        AS capital_raised,
+       (SELECT COUNT(*) FROM startups s
+         JOIN milestones m ON m.startup_id = s.id AND m.status = 'completed'
+        WHERE s.university_id = u.id)                                        AS milestones_completed,
+       (SELECT COUNT(*) FROM startups s
+         JOIN milestones m ON m.startup_id = s.id
+         JOIN milestone_attestations a ON a.milestone_id = m.id
+        WHERE s.university_id = u.id)                                        AS milestones_attested
+  FROM universities u;
 
 -- ----------------------------------------------------------------------------
 -- Revenue & carry ledgers
@@ -555,6 +799,22 @@ CREATE POLICY acks_own ON suitability_acknowledgements
     USING (user_id = app_user_id() OR app_is_admin())
     WITH CHECK (user_id = app_user_id() OR app_is_admin());
 
+-- Auction orders: own rows only (book depth is served aggregated by the API).
+ALTER TABLE auction_orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY auction_orders_own ON auction_orders
+    USING (user_id = app_user_id() OR app_is_admin())
+    WITH CHECK (user_id = app_user_id() OR app_is_admin());
+
+-- Tax documents and copilot history are private to the investor.
+ALTER TABLE tax_documents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tax_docs_own ON tax_documents FOR SELECT
+    USING (user_id = app_user_id() OR app_is_admin());
+
+ALTER TABLE copilot_exchanges ENABLE ROW LEVEL SECURITY;
+CREATE POLICY copilot_own ON copilot_exchanges
+    USING (user_id = app_user_id() OR app_is_admin())
+    WITH CHECK (user_id = app_user_id() OR app_is_admin());
+
 -- Public catalog tables (universities, startups, campaigns, milestones,
 -- syndicates) intentionally have no RLS: they are read-mostly marketing data;
 -- writes are restricted at the API layer to TTO/admin roles.
@@ -575,3 +835,9 @@ CREATE INDEX idx_attestations_milestone ON milestone_attestations (milestone_id)
 CREATE INDEX idx_questions_campaign    ON deal_questions (campaign_id, created_at DESC) WHERE hidden_at IS NULL;
 CREATE INDEX idx_answers_question      ON deal_answers (question_id, created_at);
 CREATE INDEX idx_acks_user             ON suitability_acknowledgements (user_id, acknowledged_at DESC);
+CREATE INDEX idx_auction_windows_spv   ON auction_windows (spv_id, closes_at DESC);
+CREATE INDEX idx_auction_orders_book   ON auction_orders (window_id, side, limit_price);
+CREATE INDEX idx_valuations_spv        ON spv_valuations (spv_id, as_of DESC);
+CREATE INDEX idx_tax_docs_user         ON tax_documents (user_id, tax_year DESC);
+CREATE INDEX idx_dataroom_campaign     ON data_room_documents (campaign_id);
+CREATE INDEX idx_copilot_user          ON copilot_exchanges (user_id, created_at DESC);

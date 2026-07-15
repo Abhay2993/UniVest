@@ -87,4 +87,69 @@ export interface Startup {
   };
   milestones: Milestone[];
   questions: QAQuestion[];
+  dataRoom: DataRoomSnippet[];
+}
+
+/** Indexed extract from a data-room document, used by the Diligence Copilot. */
+export interface DataRoomSnippet {
+  id: string;
+  docTitle: string;
+  section: string;
+  text: string;
+  /** Retrieval index terms. */
+  keywords: string[];
+}
+
+export interface NavPoint {
+  /** ISO date of the NAV mark. */
+  date: string;
+  navPerUnit: number;
+}
+
+/** A settled SPV position with its quarterly NAV history. */
+export interface PortfolioPosition {
+  id: string;
+  startupId: string;
+  startupName: string;
+  spvName: string;
+  units: number;
+  costBasis: number;
+  /** ISO date capital was called. */
+  investedOn: string;
+  navSeries: NavPoint[];
+}
+
+export interface TaxDocument {
+  id: string;
+  taxYear: number;
+  kind: string;
+  spvName: string;
+  issuedOn?: string;
+  status: 'available' | 'pending';
+}
+
+export interface AuctionOrderInput {
+  side: 'buy' | 'sell';
+  units: number;
+  limitPrice: number;
+}
+
+/** A batch-auction window over one SPV's units. */
+export interface AuctionWindowData {
+  id: string;
+  spvName: string;
+  startupId: string;
+  /** ISO instant the window closes and clears. */
+  closesAt: string;
+  /** Clearing prices of past windows, oldest first. */
+  history: { date: string; price: number }[];
+  /** Resting orders in the current window. */
+  book: AuctionOrderInput[];
+}
+
+export interface SyndicateInfo {
+  id: string;
+  name: string;
+  thesis: string;
+  verified: boolean;
 }

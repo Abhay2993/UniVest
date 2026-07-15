@@ -72,6 +72,24 @@ framework.
   to a single position surfaces a calm diversification note (audit-trailed in
   `suitability_acknowledgements`, exposure computed by the
   `investor_concentration` view).
+- **Diligence Copilot** — grounded Q&A over each deal's data room with
+  source citations on every answer; ungrounded questions are declined and
+  routed to Community Diligence (`data_room_documents`, `copilot_exchanges`).
+- **Portfolio analytics** — paid-in vs current value, TVPI, and true XIRR
+  from cash-flow dates; quarterly NAV line chart (validated emerald); Tax
+  Document Center for Schedule K-1s (`spv_valuations`, `tax_documents`).
+- **Batch-auction liquidity windows** — monthly uniform-price auctions
+  replace the thin continuous book; the `clear_auction()` SQL function and
+  its TypeScript mirror pick the volume-maximizing price (plateau midpoint)
+  with price-time priority fills.
+- **Auto-Invest DCA** — a monthly budget spread across qualifying deals with
+  vertical filters and verified-lead matching (`auto_invest_mandates` with
+  `monthly_budget` mode).
+- **Cap Table Simulator** — founders preview post-money ownership and
+  dilution under standardized template terms, with a validated categorical
+  stacked bar.
+- **University Leaderboard** — institutions ranked by on-platform capital
+  with milestone attestation rates (`university_leaderboard` view).
 - **Dark mode** — full light/dark theming (`#050C16` charcoal per spec) that
   follows the system, with an in-app AUTO → LIGHT → DARK override, persisted.
 - **Playfair Display serifs** — loaded via `expo-font` for display headers.

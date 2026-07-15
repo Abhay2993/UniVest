@@ -15,6 +15,7 @@ import { useWatchlist } from '../state/WatchlistContext';
 import { formatMoneyCompact } from '../utils/format';
 import { ResearchMap } from '../components/ResearchMap';
 import { StartupCard } from '../components/StartupCard';
+import { UniversityLeaderboard } from '../components/UniversityLeaderboard';
 
 interface Props {
   onSelectStartup: (startup: Startup) => void;
@@ -150,6 +151,8 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
                 />
               ))}
             </ScrollView>
+
+            <UniversityLeaderboard />
 
             <View style={s.offeringsRow}>
               <Text style={s.sectionLabelInline}>

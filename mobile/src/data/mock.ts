@@ -1,4 +1,12 @@
-import { Startup, University, Vertical } from '../types';
+import {
+  AuctionWindowData,
+  PortfolioPosition,
+  Startup,
+  SyndicateInfo,
+  TaxDocument,
+  University,
+  Vertical,
+} from '../types';
 
 export const VERTICALS: Vertical[] = [
   'Fusion Energy',
@@ -68,6 +76,11 @@ export const STARTUPS: Startup[] = [
         ],
       },
     ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'Exclusive License Agreement', section: '§2.1 Field of Use', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'MIT grants the company an exclusive, worldwide, royalty-bearing license to the 11-patent HTS coil family (incl. the substrate and buffer-stack claims) for all energy applications. The university holds 12% equity under USIT terms; the license survives change of control.' },
+      { id: 'd2', docTitle: 'Market & Competition Memo', section: '§3 Competitive Landscape', keywords: ['competitor', 'competitors', 'competition', 'market', 'rivals'], text: 'Direct competitors are Commonwealth-adjacent magnet suppliers and two Japanese tape manufacturers; both depend on rare-earth REBCO tape. Helion\'s rare-earth-free process undercuts tape cost by ~60%, and no competitor has demonstrated >15T without rare-earth materials.' },
+      { id: 'd3', docTitle: 'Financial Model v7', section: '§5 Use of Funds & Runway', keywords: ['runway', 'burn', 'cash', 'funds', 'financials', 'revenue'], text: 'The $2.5M raise extends runway to 22 months at a $95K/month burn, funding the 10-coil pilot line. Two signed pilot contracts contribute $1.4M of milestone revenue across 2026–27; break-even is modeled at 30 production coils/year.' },
+    ],
   },
   {
     id: 's2',
@@ -114,6 +127,11 @@ export const STARTUPS: Startup[] = [
           { id: 'a1', authorName: 'Prof. N. Keller · Co-founder', role: 'founder', date: '2026-07-06', body: 'Portable — that is exactly what the current milestone proves. The design kit uses only standard-cell photonic components qualified on the partner fab\'s process; no research-line steps remain.' },
         ],
       },
+    ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'IP & License Summary', section: '§1 Patent Estate', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'Seven patent families covering the error-correction lattice and photonic interposer, ETH-owned and exclusively licensed. Royalty structure: per-wafer fee on customer silicon; ETH equity at 10% under the standardized template.' },
+      { id: 'd2', docTitle: 'Market & Competition Memo', section: '§2 Landscape', keywords: ['competitor', 'competitors', 'competition', 'market', 'rivals'], text: 'Superconducting-qubit incumbents require dilution refrigerators; trapped-ion players scale slowly. Qubit Foundry is the only photonic error-corrected design that is CMOS-fab portable — the royalty model competes with no one\'s capex.' },
+      { id: 'd3', docTitle: 'Financial Model v4', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'funds', 'financials', 'revenue'], text: 'The $1.8M raise funds 20 months at $88K/month, through foundry process transfer and first royalty silicon. The signed top-3 provider agreement carries a $0.9M minimum royalty commitment in year one of production.' },
     ],
   },
   {
@@ -165,6 +183,11 @@ export const STARTUPS: Startup[] = [
         ],
       },
     ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'License & IP Agreement', section: '§2 Grant', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'Oxford holds the cell-processing and scaffold-architecture patents; the company holds an exclusive worldwide license (all vascular indications) surviving change of control. University equity: 15% per the pre-cleared USIT-style template.' },
+      { id: 'd2', docTitle: 'Clinical & Market Assessment', section: '§6 Competition', keywords: ['competitor', 'competitors', 'competition', 'market', 'stent'], text: 'Bio-resorbable stents from two large incumbents were withdrawn after thrombosis signals; both used polymer-only scaffolds. Vasca\'s autologous-cell approach eliminated thrombosis in pre-clinical work — no direct autologous competitor has reached Phase I.' },
+      { id: 'd3', docTitle: 'Financial Model v6', section: '§5 Use of Funds', keywords: ['runway', 'burn', 'cash', 'funds', 'financials', 'trial'], text: 'The $3.2M raise funds the 12-patient Phase I cohort and 18 months of runway at $140K/month. Phase II is gated on a planned Series A; reimbursement dossiers for the UK and Germany are budgeted within this raise.' },
+    ],
   },
   {
     id: 's4',
@@ -205,6 +228,11 @@ export const STARTUPS: Startup[] = [
         ],
       },
     ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'IP Assignment & License', section: '§1 Background IP', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'TU Delft assigned the swarm-coordination patents to the company against a 10% equity position; the perception stack is company-developed foreground IP. TTO verification of the assignment is in progress (expected this quarter).' },
+      { id: 'd2', docTitle: 'Market Study — Offshore Wind O&M', section: '§4 Competition', keywords: ['competitor', 'competitors', 'competition', 'market', 'inspection'], text: 'Incumbent inspection is crewed vessels plus rope-access technicians at ~€45K per turbine per year. Drone providers cover blades-above-waterline only. No competitor offers resident subsea-to-blade-tip robotic coverage.' },
+      { id: 'd3', docTitle: 'Financial Plan v3', section: '§3 Runway & Unit Economics', keywords: ['runway', 'burn', 'cash', 'funds', 'financials', 'revenue'], text: 'The €1.2M raise funds 16 months at €70K/month and the 12-robot pilot fleet. Contracted pilots yield €380K ARR; a single mid-size farm at full deployment is worth €2.4M ARR at 68% gross margin.' },
+    ],
   },
   {
     id: 's5',
@@ -244,5 +272,96 @@ export const STARTUPS: Startup[] = [
         ],
       },
     ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'License Agreement', section: '§2 Scope', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'KAIST owns the vascular-network patents and licenses them exclusively for aerospace and defense applications; the company retains foreground IP on the resin chemistry. University equity: 12% under the standardized template.' },
+      { id: 'd2', docTitle: 'Competitive Assessment', section: '§3 Alternatives', keywords: ['competitor', 'competitors', 'competition', 'market', 'materials'], text: 'Capsule-based self-healing composites (two US startups) lose capacity after first rupture. Thermoplastic-weld approaches need autoclave access in the field. Lattice\'s vascular system is the only replenishable option at aerospace temperatures.' },
+      { id: 'd3', docTitle: 'Financial Model v2', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'funds', 'financials', 'revenue'], text: 'The $900K raise funds 14 months at $58K/month through prime-contractor test-article delivery. Qualification programme entry converts to a paid JDP worth $600K, modeled for Q3 2027.' },
+    ],
   },
+];
+
+// ----------------------------------------------------------------------------
+// Portfolio (settled positions with quarterly NAV marks)
+// ----------------------------------------------------------------------------
+export const PORTFOLIO_POSITIONS: PortfolioPosition[] = [
+  {
+    id: 'p1',
+    startupId: 's1',
+    startupName: 'Helion Dynamics',
+    spvName: 'UniVest SPV Series 042',
+    units: 250,
+    costBasis: 2_500,
+    investedOn: '2025-07-01',
+    navSeries: [
+      { date: '2025-09-30', navPerUnit: 10.0 },
+      { date: '2025-12-31', navPerUnit: 10.4 },
+      { date: '2026-03-31', navPerUnit: 11.8 },
+      { date: '2026-06-30', navPerUnit: 13.25 },
+    ],
+  },
+  {
+    id: 'p2',
+    startupId: 's3',
+    startupName: 'Vasca Bio',
+    spvName: 'UniVest SPV Series 019',
+    units: 120,
+    costBasis: 1_200,
+    investedOn: '2025-05-15',
+    navSeries: [
+      { date: '2025-09-30', navPerUnit: 10.0 },
+      { date: '2025-12-31', navPerUnit: 11.2 },
+      { date: '2026-03-31', navPerUnit: 12.9 },
+      { date: '2026-06-30', navPerUnit: 14.1 },
+    ],
+  },
+  {
+    id: 'p3',
+    startupId: 's2',
+    startupName: 'Qubit Foundry',
+    spvName: 'UniVest SPV Series 021',
+    units: 100,
+    costBasis: 1_000,
+    investedOn: '2026-01-10',
+    navSeries: [
+      { date: '2026-03-31', navPerUnit: 9.6 },
+      { date: '2026-06-30', navPerUnit: 10.9 },
+    ],
+  },
+];
+
+export const TAX_DOCUMENTS: TaxDocument[] = [
+  { id: 't1', taxYear: 2025, kind: 'Schedule K-1', spvName: 'UniVest SPV Series 042', issuedOn: '2026-03-12', status: 'available' },
+  { id: 't2', taxYear: 2025, kind: 'Schedule K-1', spvName: 'UniVest SPV Series 019', issuedOn: '2026-03-12', status: 'available' },
+  { id: 't3', taxYear: 2026, kind: 'Schedule K-1', spvName: 'UniVest SPV Series 021', status: 'pending' },
+];
+
+// ----------------------------------------------------------------------------
+// Batch auction (Liquidity Engine v2)
+// ----------------------------------------------------------------------------
+export const ACTIVE_AUCTION: AuctionWindowData = {
+  id: 'w1',
+  spvName: 'UniVest SPV Series 042',
+  startupId: 's1',
+  closesAt: '2026-07-17T16:00:00Z',
+  history: [
+    { date: '2026-02-15', price: 10.75 },
+    { date: '2026-03-15', price: 11.1 },
+    { date: '2026-04-15', price: 11.6 },
+    { date: '2026-05-15', price: 11.4 },
+    { date: '2026-06-15', price: 12.1 },
+  ],
+  book: [
+    { side: 'buy', units: 100, limitPrice: 13.0 },
+    { side: 'buy', units: 200, limitPrice: 12.5 },
+    { side: 'buy', units: 150, limitPrice: 12.0 },
+    { side: 'sell', units: 120, limitPrice: 11.5 },
+    { side: 'sell', units: 180, limitPrice: 12.25 },
+    { side: 'sell', units: 200, limitPrice: 12.75 },
+  ],
+};
+
+export const SYNDICATES: SyndicateInfo[] = [
+  { id: 'sy1', name: 'The Engine Ventures', thesis: 'Tough-tech spinouts from the MIT ecosystem', verified: true },
+  { id: 'sy2', name: 'ETH Foundry Fund', thesis: 'Swiss deep-tech: quantum, robotics, climate', verified: true },
+  { id: 'sy3', name: 'Oxford Science Enterprises', thesis: 'Life sciences and frontier computing out of Oxford', verified: true },
 ];
