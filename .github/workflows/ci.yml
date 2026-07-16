@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  mobile:
+    name: Mobile — typecheck, tests, web builds
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Unit & component tests (finance math, InvestPanel)
+        run: npx jest --ci
+      - name: Web bundle (Vercel target)
+        run: EXPO_OFFLINE=1 npx expo export --platform web --output-dir dist
+      - name: Web companion (SEO deal pages)
+        run: node ../web/build.mjs --out dist/deals
+      - name: Companion output sanity
+        run: test -f dist/deals/index.html && test -f dist/deals/helion-dynamics.html
+
+  backend:
+    name: Backend API — build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/api/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  database:
+    name: Database — schema, seed, assertions
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply schema
+        run: |
+          createdb univest
+          psql -d univest -v ON_ERROR_STOP=1 -f backend/db/schema.sql
+      - name: Apply seed
+        run: psql -d univest -v ON_ERROR_STOP=1 -f backend/db/seed.sql
+      - name: Run assertions (clearing engine, cooling-off, triggers, views)
+        run: psql -d univest -v ON_ERROR_STOP=1 -f backend/db/tests.sql

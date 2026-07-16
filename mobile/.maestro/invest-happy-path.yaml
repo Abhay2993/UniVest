@@ -1,0 +1,45 @@
+# Maestro E2E scaffold — the invest happy path.
+# Run against a simulator/emulator with the app installed:
+#   maestro test .maestro/invest-happy-path.yaml
+# (Maestro needs a device; CI runs the Jest suites, this covers local/device farms.)
+appId: com.univest.app
+---
+- launchApp
+# Onboarding
+- tapOn: "Begin Verification"
+- tapOn: "As it appears on your ID"
+- inputText: "Test Investor"
+- tapOn: "USA"
+- tapOn: "Verify with ID + Liveness Check"
+- extendedWaitUntil:
+    visible: "STEP 2 OF 3 — SUITABILITY.*"
+    timeout: 10000
+# Suitability quiz (correct answers in order)
+- tapOn: "I can lose the entire amount"
+- tapOn: "Continue"
+- tapOn: "Only at monthly liquidity windows — sometimes not at all"
+- tapOn: "Continue"
+- tapOn: "Up to 48 hours before the close"
+- tapOn: "Continue"
+- tapOn: "A modest share, spread across several offerings"
+- tapOn: "Continue"
+- tapOn: "A single SPV that pools all platform investors"
+- tapOn: "See Results"
+# Financial bands → limit
+- tapOn: "$124–250K"
+- tapOn:
+    text: "$124–500K"
+    index: 0
+- tapOn: "Compute My Limit"
+- tapOn: "Enter UniVest"
+# Invest in the first offering
+- tapOn: "Helion Dynamics"
+- tapOn:
+    text: "Invest — from.*"
+- tapOn: "$1,000"
+- tapOn: "Reserve.*1,000"
+- tapOn: "Type your full legal name to sign"
+- inputText: "Test Investor"
+- tapOn: "Sign & Reserve.*"
+- assertVisible: "Commitment Reserved"
+- assertVisible: "left to cancel"

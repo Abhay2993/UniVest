@@ -1,11 +1,12 @@
 # Node / Expo
 node_modules/
-package-lock.json
 .expo/
 dist/
 *.tsbuildinfo
 npm-debug.log*
 .env
+.test-build/
+.web-data/
 
 # OS
 .DS_Store

@@ -13,6 +13,7 @@ import { EducationProvider } from './src/state/EducationContext';
 import { InboxProvider } from './src/state/InboxContext';
 import { InvestorProfileProvider, useInvestorProfile } from './src/state/InvestorProfileContext';
 import { PortfolioProvider } from './src/state/PortfolioContext';
+import { SettingsProvider, useSettings } from './src/state/SettingsContext';
 import { WatchlistProvider } from './src/state/WatchlistContext';
 import { Tab, TabBar } from './src/components/TabBar';
 import { DiscoveryFeedScreen } from './src/screens/DiscoveryFeedScreen';
@@ -41,17 +42,19 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <InvestorProfileProvider>
-        <EducationProvider>
-          <WatchlistProvider>
-            <PortfolioProvider>
-              <InboxProvider>
-                <Root />
-              </InboxProvider>
-            </PortfolioProvider>
-          </WatchlistProvider>
-        </EducationProvider>
-      </InvestorProfileProvider>
+      <SettingsProvider>
+        <InvestorProfileProvider>
+          <EducationProvider>
+            <WatchlistProvider>
+              <PortfolioProvider>
+                <InboxProvider>
+                  <Root />
+                </InboxProvider>
+              </PortfolioProvider>
+            </WatchlistProvider>
+          </EducationProvider>
+        </InvestorProfileProvider>
+      </SettingsProvider>
     </ThemeProvider>
   );
 }
@@ -59,6 +62,9 @@ export default function App() {
 function Root() {
   const { palette } = useTheme();
   const { onboardingVisible } = useInvestorProfile();
+  // Subscribing to currency remounts the tree on switch, so every money
+  // display re-renders through the active formatter.
+  const { currency } = useSettings();
   const [tab, setTab] = useState<Tab>('discover');
   const [selected, setSelected] = useState<Startup | null>(null);
 
@@ -72,7 +78,7 @@ function Root() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: palette.navy }]}>
+    <View key={currency} style={[styles.root, { backgroundColor: palette.navy }]}>
       <StatusBar style="light" backgroundColor={palette.navy} />
       {selected ? (
         <StartupDetailScreen startup={selected} onBack={() => setSelected(null)} />

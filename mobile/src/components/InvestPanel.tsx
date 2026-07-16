@@ -11,6 +11,7 @@ import {
 } from '../state/PortfolioContext';
 import { useEducation } from '../state/EducationContext';
 import { useInvestorProfile } from '../state/InvestorProfileContext';
+import { useSettings } from '../state/SettingsContext';
 import { formatMoney } from '../utils/format';
 
 const QUIET_EASE = LayoutAnimation.create(
@@ -42,8 +43,14 @@ export function InvestPanel({ startup }: { startup: Startup }) {
   const commitment = getCommitment(startup.id);
   const verified = profile.kycStatus === 'approved';
   const { effectiveLimit } = useEducation();
+  const { jurisdiction } = useSettings();
   // Academy progress gates the usable share of the statutory limit.
   const annualLimit = effectiveLimit(profile.annualLimit ?? ANNUAL_INVESTMENT_LIMIT);
+
+  const cancellationNote =
+    jurisdiction === 'EU'
+      ? '1.5% SPV admin fee · 4-day reflection period applies (ECSPR)'
+      : '1.5% SPV admin fee · cancel any time until 48h before close (Reg CF)';
 
   const presets = [startup.minInvestment, 500, 1_000, 2_500, 5_000]
     .filter((v, i, arr) => v >= startup.minInvestment && v <= MAX_TICKET && arr.indexOf(v) === i)
@@ -85,6 +92,7 @@ export function InvestPanel({ startup }: { startup: Startup }) {
         amount={commitment.amount}
         cancellableUntil={commitment.cancellableUntil}
         onCancel={onCancel}
+        jurisdiction={jurisdiction}
       />
     );
   }
@@ -93,12 +101,17 @@ export function InvestPanel({ startup }: { startup: Startup }) {
     const pct = Math.round(exposurePct(startup.id, amount, annualLimit));
     return (
       <View style={s.bar}>
-        <Text style={s.warnTitle}>A measured note on concentration</Text>
+        <Text style={s.warnTitle}>
+          {jurisdiction === 'EU'
+            ? 'Express consent required (ECSPR)'
+            : 'A measured note on concentration'}
+        </Text>
         <Text style={s.warnBody}>
           This commitment would place {pct}% of your {formatMoney(annualLimit)} annual
-          allowance in a single {startup.vertical} position. Deep-tech timelines reward
-          diversification across several offerings. You may proceed — consider whether this
-          weighting reflects your intent.
+          allowance in a single {startup.vertical} position.{' '}
+          {jurisdiction === 'EU'
+            ? 'Under ECSPR, non-sophisticated investors must expressly confirm they can bear the loss of this amount before proceeding.'
+            : 'Deep-tech timelines reward diversification across several offerings. You may proceed — consider whether this weighting reflects your intent.'}
         </Text>
         <View style={s.row}>
           <Pressable style={s.ghostBtn} onPress={() => go('amount')} accessibilityRole="button">
@@ -191,9 +204,7 @@ export function InvestPanel({ startup }: { startup: Startup }) {
         <Pressable style={s.cta} onPress={reserve} accessibilityRole="button">
           <Text style={s.ctaText}>Reserve {formatMoney(amount)}</Text>
         </Pressable>
-        <Text style={s.footnote}>
-          1.5% SPV admin fee · cancel any time until 48h before close (Reg CF)
-        </Text>
+        <Text style={s.footnote}>{cancellationNote}</Text>
       </View>
     );
   }
@@ -226,9 +237,7 @@ export function InvestPanel({ startup }: { startup: Startup }) {
       >
         <Text style={s.ctaText}>Invest — from {formatMoney(startup.minInvestment)}</Text>
       </Pressable>
-      <Text style={s.footnote}>
-        1.5% SPV admin fee · cancel any time until 48h before close (Reg CF)
-      </Text>
+      <Text style={s.footnote}>{cancellationNote}</Text>
     </View>
   );
 }
@@ -237,10 +246,12 @@ function CommitmentCard({
   amount,
   cancellableUntil,
   onCancel,
+  jurisdiction,
 }: {
   amount: number;
   cancellableUntil: string;
   onCancel: () => void;
+  jurisdiction: 'US' | 'EU';
 }) {
   const s = useThemedStyles(makeStyles);
   const remaining = useCountdown(cancellableUntil);
@@ -270,8 +281,9 @@ function CommitmentCard({
         </Pressable>
       )}
       <Text style={s.footnote}>
-        Under Reg CF you may cancel until 48 hours before the round closes. Funds stay in escrow
-        until then.
+        {jurisdiction === 'EU'
+          ? 'Under ECSPR you may withdraw within the 4-day reflection period. Funds stay in escrow until then.'
+          : 'Under Reg CF you may cancel until 48 hours before the round closes. Funds stay in escrow until then.'}
       </Text>
     </View>
   );

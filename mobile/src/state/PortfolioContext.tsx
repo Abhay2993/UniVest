@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Startup } from '../types';
+import { useSettings } from './SettingsContext';
 
 const STORAGE_KEY = 'univest.portfolio.v1';
 
@@ -13,8 +14,11 @@ export const ANNUAL_INVESTMENT_LIMIT = 12_000;
 /** Single-position share of the annual limit that triggers the calm nudge. */
 export const CONCENTRATION_WARNING_PCT = 40;
 
-/** Reg CF: cancellation allowed until 48 hours before campaign close. */
+/** Reg CF (US): cancellation allowed until 48 hours before campaign close. */
 export const COOLING_OFF_HOURS = 48;
+
+/** ECSPR (EU): a 4-day reflection period from the moment of commitment. */
+export const ECSPR_REFLECTION_DAYS = 4;
 
 export interface Commitment {
   startupId: string;
@@ -56,6 +60,7 @@ function persist(commitments: Record<string, Commitment>): void {
 }
 
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
+  const { jurisdiction } = useSettings();
   const [commitments, setCommitments] = useState<Record<string, Commitment>>({});
 
   useEffect(() => {
@@ -71,12 +76,18 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const commit = useCallback((startup: Startup, amount: number, signerName?: string) => {
     const now = Date.now();
     const closesAt = now + startup.daysLeft * 86_400_000;
+    // US/Reg CF: window closes 48h before the campaign close.
+    // EU/ECSPR: 4-day reflection from commitment (never past the close).
+    const cancellableUntil =
+      jurisdiction === 'EU'
+        ? Math.min(now + ECSPR_REFLECTION_DAYS * 86_400_000, closesAt)
+        : closesAt - COOLING_OFF_HOURS * 3_600_000;
     const entry: Commitment = {
       startupId: startup.id,
       amount,
       committedAt: new Date(now).toISOString(),
       closesAt: new Date(closesAt).toISOString(),
-      cancellableUntil: new Date(closesAt - COOLING_OFF_HOURS * 3_600_000).toISOString(),
+      cancellableUntil: new Date(cancellableUntil).toISOString(),
       signerName,
     };
     setCommitments((prev) => {
@@ -84,7 +95,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
       persist(next);
       return next;
     });
-  }, []);
+  }, [jurisdiction]);
 
   const cancel = useCallback((startupId: string) => {
     setCommitments((prev) => {

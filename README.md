@@ -1,5 +1,7 @@
 # UniVest
 
+![CI](https://github.com/Abhay2993/UniVest/actions/workflows/ci.yml/badge.svg)
+
 **Democratizing equity investment in deep-tech academic spinouts.**
 
 UniVest is a cross-platform mobile platform (iOS & Android) that bridges retail
@@ -122,6 +124,28 @@ framework.
 - **Web build (Vercel-ready)** — `react-native-web` target with a
   `ResearchMap.web.tsx` fallback for the native-only map; `vercel.json`
   builds `mobile/` and serves `mobile/dist` zero-config.
+- **Multi-currency + jurisdiction regimes** — USD/EUR display everywhere via
+  locale-aware formatters; the Region setting (or onboarding residence)
+  selects Reg CF (48h-before-close cancellation) or ECSPR (4-day reflection
+  period + express-consent nudge).
+- **Web companion (SEO)** — `web/build.mjs` generates static, crawlable deal
+  pages and a leaderboard at `/deals/*` from the app's data, served from the
+  same Vercel deploy as the SPA.
+
+## Testing & CI
+
+- `mobile`: `npm test` — Jest (jest-expo + React Native Testing Library):
+  finance math (XIRR closed-form, TVPI, auction clearing vs the SQL engine,
+  Reg CF limits) and InvestPanel behavior (KYC gate, 40% concentration
+  threshold, cooling-off open/closed states).
+- `backend/db/tests.sql` — database assertions: clearing engine on the
+  reference book (12.375/300 with correct fills), raised-amount trigger,
+  cooling-off stamp, late-cancel rejection, views.
+- `.github/workflows/ci.yml` — on every push: mobile typecheck + tests + web
+  bundle + companion build; backend build; schema + seed + assertions against
+  a real PostgreSQL 16 service.
+- `mobile/.maestro/invest-happy-path.yaml` — device E2E scaffold
+  (onboarding → quiz → invest → sign → cooling-off) for local/device-farm runs.
 
 ## Backend API
 

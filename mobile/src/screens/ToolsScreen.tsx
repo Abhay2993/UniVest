@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STARTUPS, SYNDICATES, VERTICALS } from '../data/mock';
+import { useSettings } from '../state/SettingsContext';
 import { Vertical } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
@@ -46,6 +47,8 @@ export function ToolsScreen() {
           Recurring allocation for investors · deal modeling for founders and TTOs
         </Text>
       </View>
+
+      <RegionCard />
 
       <Pressable
         style={s.portalCard}
@@ -100,6 +103,59 @@ export function ToolsScreen() {
         <Text style={s.portalArrow}>→</Text>
       </Pressable>
     </ScrollView>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Region & Currency (jurisdiction drives the regulatory regime)
+// ----------------------------------------------------------------------------
+function RegionCard() {
+  const s = useThemedStyles(makeStyles);
+  const { jurisdiction, currency, setJurisdiction, setCurrency } = useSettings();
+
+  return (
+    <View style={s.card}>
+      <Text style={s.overline}>Region & Currency</Text>
+      <Text style={s.hint}>
+        The jurisdiction sets your regulatory regime — Reg CF (48h-before-close cancellation)
+        or ECSPR (4-day reflection period) — and the display currency.
+      </Text>
+      <Text style={s.fieldLabel}>JURISDICTION</Text>
+      <View style={s.presetRow}>
+        {(
+          [
+            ['US', 'United States · Reg CF'],
+            ['EU', 'European Union · ECSPR'],
+          ] as const
+        ).map(([key, label]) => (
+          <Pressable
+            key={key}
+            style={[s.chip, jurisdiction === key && s.chipActive]}
+            onPress={() => setJurisdiction(key)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: jurisdiction === key }}
+          >
+            <Text style={[s.chipText, jurisdiction === key && s.chipTextActive]}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={s.fieldLabel}>CURRENCY</Text>
+      <View style={s.presetRow}>
+        {(['USD', 'EUR'] as const).map((code) => (
+          <Pressable
+            key={code}
+            style={[s.chip, currency === code && s.chipActive]}
+            onPress={() => setCurrency(code)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: currency === code }}
+          >
+            <Text style={[s.chipText, currency === code && s.chipTextActive]}>
+              {code === 'USD' ? '$ USD' : '€ EUR'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }
 
