@@ -6,6 +6,7 @@ import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatMoneyCompact, formatPct, formatMoney } from '../utils/format';
 import { BookmarkButton } from '../components/BookmarkButton';
 import { CopilotCard } from '../components/CopilotCard';
+import { FeeTransparencyCard } from '../components/FeeTransparencyCard';
 import { InvestPanel } from '../components/InvestPanel';
 import { MilestoneTracker } from '../components/MilestoneTracker';
 import { ProgressBar } from '../components/ProgressBar';
@@ -121,6 +122,11 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
         {/* Community Diligence Q&A */}
         <View style={s.trackerWrap}>
           <QASection startupName={startup.name} questions={startup.questions} />
+        </View>
+
+        {/* Fee transparency — every stream, with the exit math */}
+        <View style={s.trackerWrap}>
+          <FeeTransparencyCard startupId={startup.id} />
         </View>
       </ScrollView>
 

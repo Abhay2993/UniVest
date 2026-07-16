@@ -6,6 +6,8 @@ import { Vertical } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatMoney, formatMoneyCompact } from '../utils/format';
+import { AcademyScreen } from './AcademyScreen';
+import { OpsConsoleScreen } from './OpsConsoleScreen';
 import { TTOPortalScreen } from './TTOPortalScreen';
 
 const AUTOINVEST_KEY = 'univest.autoinvest.v1';
@@ -29,11 +31,11 @@ const DEFAULT_PREFS: AutoInvestPrefs = {
  *  and the University Portal for TTO officers. */
 export function ToolsScreen() {
   const s = useThemedStyles(makeStyles);
-  const [portalOpen, setPortalOpen] = useState(false);
+  const [overlay, setOverlay] = useState<'none' | 'portal' | 'academy' | 'ops'>('none');
 
-  if (portalOpen) {
-    return <TTOPortalScreen onClose={() => setPortalOpen(false)} />;
-  }
+  if (overlay === 'portal') return <TTOPortalScreen onClose={() => setOverlay('none')} />;
+  if (overlay === 'academy') return <AcademyScreen onClose={() => setOverlay('none')} />;
+  if (overlay === 'ops') return <OpsConsoleScreen onClose={() => setOverlay('none')} />;
 
   return (
     <ScrollView style={s.screen} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
@@ -45,12 +47,29 @@ export function ToolsScreen() {
         </Text>
       </View>
 
+      <Pressable
+        style={s.portalCard}
+        onPress={() => setOverlay('academy')}
+        accessibilityRole="button"
+        accessibilityLabel="Open the UniVest Academy"
+      >
+        <View style={s.portalLeft}>
+          <Text style={s.portalOverline}>FOR INVESTORS</Text>
+          <Text style={s.portalTitle}>UniVest Academy</Text>
+          <Text style={s.portalHint}>
+            Four short modules — each one completed unlocks another 10% of your annual
+            investment limit
+          </Text>
+        </View>
+        <Text style={s.portalArrow}>→</Text>
+      </Pressable>
+
       <AutoInvestCard />
       <CapTableSimulator />
 
       <Pressable
         style={s.portalCard}
-        onPress={() => setPortalOpen(true)}
+        onPress={() => setOverlay('portal')}
         accessibilityRole="button"
         accessibilityLabel="Open the university portal for TTO officers"
       >
@@ -60,6 +79,22 @@ export function ToolsScreen() {
           <Text style={s.portalHint}>
             Launch a raise from standardized templates · publish milestone updates · sign
             attestations with your registered key
+          </Text>
+        </View>
+        <Text style={s.portalArrow}>→</Text>
+      </Pressable>
+
+      <Pressable
+        style={s.portalCard}
+        onPress={() => setOverlay('ops')}
+        accessibilityRole="button"
+        accessibilityLabel="Open the platform ops console"
+      >
+        <View style={s.portalLeft}>
+          <Text style={s.portalOverline}>FOR PLATFORM ADMINS</Text>
+          <Text style={s.portalTitle}>Platform Ops</Text>
+          <Text style={s.portalHint}>
+            Campaign approvals · KYC exceptions · Q&A moderation with audit-preserving hides
           </Text>
         </View>
         <Text style={s.portalArrow}>→</Text>

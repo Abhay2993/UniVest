@@ -796,6 +796,15 @@ CREATE POLICY answers_read ON deal_answers FOR SELECT
 CREATE POLICY answers_write ON deal_answers FOR INSERT
     WITH CHECK (author_id = app_user_id() OR app_is_admin());
 
+-- Moderation (audit-preserving hides) is an UPDATE and needs its own policy;
+-- without it, RLS default-deny silently blocks even admins.
+CREATE POLICY questions_moderate ON deal_questions FOR UPDATE
+    USING (app_is_admin())
+    WITH CHECK (app_is_admin());
+CREATE POLICY answers_moderate ON deal_answers FOR UPDATE
+    USING (app_is_admin())
+    WITH CHECK (app_is_admin());
+
 -- Acknowledgements are the investor's own audit trail.
 ALTER TABLE suitability_acknowledgements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY acks_own ON suitability_acknowledgements

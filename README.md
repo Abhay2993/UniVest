@@ -110,6 +110,18 @@ framework.
 - **Subscription e-signature** — the commitment flow ends by signing the
   agreement (type-to-sign; Dropbox Sign in production); signed agreements
   file into the Document Vault beside the K-1s.
+- **UniVest Academy** — four education modules with knowledge checks; each
+  completion unlocks another 10% of the statutory Reg CF limit (60% → 100%),
+  enforced in the commitment flow.
+- **Fee transparency** — a tappable per-deal breakdown of all three revenue
+  streams with net-to-you math at 2x/3x/5x exit multiples.
+- **Platform Ops console** — campaign approval queue, KYC exceptions, and
+  Q&A moderation with audit-preserving hides, backed by `/api/v1/admin/*`
+  endpoints (admin role verified from the database; a dedicated RLS
+  moderation policy allows the hide).
+- **Web build (Vercel-ready)** — `react-native-web` target with a
+  `ResearchMap.web.tsx` fallback for the native-only map; `vercel.json`
+  builds `mobile/` and serves `mobile/dist` zero-config.
 
 ## Backend API
 

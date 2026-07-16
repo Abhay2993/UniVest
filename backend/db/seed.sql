@@ -25,7 +25,8 @@ VALUES
   ('00000000-0000-0000-0000-000000000002','retail','bob@example.com','Bob Rao','US','demo','approved',now(),2500,80,now()),
   ('00000000-0000-0000-0000-000000000003','institutional','founder@heliondynamics.com','Dr. Sofia Reyes','US','demo','approved',now(),NULL,NULL,NULL),
   ('00000000-0000-0000-0000-000000000004','tto','kbrennan@mit.edu','K. Brennan','US','demo','approved',now(),NULL,NULL,NULL),
-  ('00000000-0000-0000-0000-000000000005','retail','carol@example.com','Carol Diaz','US','demo','not_started',NULL,NULL,NULL,NULL)
+  ('00000000-0000-0000-0000-000000000005','retail','carol@example.com','Carol Diaz','US','demo','not_started',NULL,NULL,NULL,NULL),
+  ('00000000-0000-0000-0000-000000000006','admin','ops@univest.io','UniVest Ops','US','demo','approved',now(),NULL,NULL,NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
@@ -115,6 +116,13 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO tax_documents (user_id, spv_id, tax_year, kind, issued_at)
 VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000af',2025,'schedule_k1', now() - interval '120 days')
+ON CONFLICT DO NOTHING;
+
+-- A raise awaiting platform review (admin console approval queue)
+INSERT INTO campaigns (id, startup_id, status, template, university_equity_pct, target_amount,
+                       raised_amount, min_investment, max_investment, price_per_unit, closes_at)
+VALUES ('00000000-0000-0000-0000-0000000000b7','00000000-0000-0000-0000-0000000000ae','tto_review','usit',15.00,
+        3200000, 0, 100, 5000, 10.00, now() + interval '60 days')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO auction_windows (id, spv_id, opens_at, closes_at, status)

@@ -9,6 +9,7 @@ import {
   CONCENTRATION_WARNING_PCT,
   usePortfolio,
 } from '../state/PortfolioContext';
+import { useEducation } from '../state/EducationContext';
 import { useInvestorProfile } from '../state/InvestorProfileContext';
 import { formatMoney } from '../utils/format';
 
@@ -40,7 +41,9 @@ export function InvestPanel({ startup }: { startup: Startup }) {
 
   const commitment = getCommitment(startup.id);
   const verified = profile.kycStatus === 'approved';
-  const annualLimit = profile.annualLimit ?? ANNUAL_INVESTMENT_LIMIT;
+  const { effectiveLimit } = useEducation();
+  // Academy progress gates the usable share of the statutory limit.
+  const annualLimit = effectiveLimit(profile.annualLimit ?? ANNUAL_INVESTMENT_LIMIT);
 
   const presets = [startup.minInvestment, 500, 1_000, 2_500, 5_000]
     .filter((v, i, arr) => v >= startup.minInvestment && v <= MAX_TICKET && arr.indexOf(v) === i)

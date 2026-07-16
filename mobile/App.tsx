@@ -9,6 +9,7 @@ import {
 import { Startup } from './src/types';
 import { lightPalette } from './src/theme/tokens';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { EducationProvider } from './src/state/EducationContext';
 import { InboxProvider } from './src/state/InboxContext';
 import { InvestorProfileProvider, useInvestorProfile } from './src/state/InvestorProfileContext';
 import { PortfolioProvider } from './src/state/PortfolioContext';
@@ -41,13 +42,15 @@ export default function App() {
   return (
     <ThemeProvider>
       <InvestorProfileProvider>
-        <WatchlistProvider>
-          <PortfolioProvider>
-            <InboxProvider>
-              <Root />
-            </InboxProvider>
-          </PortfolioProvider>
-        </WatchlistProvider>
+        <EducationProvider>
+          <WatchlistProvider>
+            <PortfolioProvider>
+              <InboxProvider>
+                <Root />
+              </InboxProvider>
+            </PortfolioProvider>
+          </WatchlistProvider>
+        </EducationProvider>
       </InvestorProfileProvider>
     </ThemeProvider>
   );
