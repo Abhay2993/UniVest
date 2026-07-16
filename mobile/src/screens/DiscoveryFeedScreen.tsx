@@ -18,6 +18,7 @@ import { ResearchMap } from '../components/ResearchMap';
 import { StartupCard } from '../components/StartupCard';
 import { UniversityLeaderboard } from '../components/UniversityLeaderboard';
 import { CompareScreen } from './CompareScreen';
+import { DirectoryScreen } from './DirectoryScreen';
 import { InboxScreen } from './InboxScreen';
 
 interface Props {
@@ -41,7 +42,7 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
   const { watchedIds, isFollowing } = useWatchlist();
   const { unreadCount } = useInbox();
 
-  const [view, setView] = useState<'list' | 'map' | 'inbox' | 'compare'>('list');
+  const [view, setView] = useState<'list' | 'map' | 'inbox' | 'compare' | 'directory'>('list');
   const [vertical, setVertical] = useState<Vertical | 'All'>('All');
   const [universityId, setUniversityId] = useState<string | null>(null);
   const [watchlistOnly, setWatchlistOnly] = useState(false);
@@ -82,6 +83,10 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
 
   if (view === 'compare') {
     return <CompareScreen onClose={() => setView('list')} onSelectStartup={onSelectStartup} />;
+  }
+
+  if (view === 'directory') {
+    return <DirectoryScreen onClose={() => setView('list')} />;
   }
 
   return (
@@ -176,6 +181,23 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
                 />
               ))}
             </ScrollView>
+
+            <Pressable
+              style={s.directoryCard}
+              onPress={() => setView('directory')}
+              accessibilityRole="button"
+              accessibilityLabel="Open the spinout directory of real Oxford, MIT and Harvard companies"
+            >
+              <View style={s.directoryLeft}>
+                <Text style={s.directoryOverline}>REFERENCE</Text>
+                <Text style={s.directoryTitle}>Spinout Directory</Text>
+                <Text style={s.directoryHint}>
+                  Explore real spinouts from Oxford, MIT & Harvard — factual reference, not
+                  offerings
+                </Text>
+              </View>
+              <Text style={s.directoryArrow}>→</Text>
+            </Pressable>
 
             <UniversityLeaderboard />
 
@@ -418,6 +440,33 @@ const makeStyles = (c: Palette) => {
       marginTop: space.sm,
       marginBottom: space.sm,
     },
+    directoryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.navy,
+      borderRadius: radius.md,
+      padding: space.lg,
+      marginHorizontal: space.md,
+      marginBottom: space.md,
+    },
+    directoryLeft: { flex: 1, paddingRight: space.md },
+    directoryOverline: {
+      fontFamily: font.sans,
+      fontSize: 9,
+      letterSpacing: 1.6,
+      color: c.gold,
+      marginBottom: space.xs,
+    },
+    directoryTitle: { fontFamily: font.serif, fontSize: 20, color: c.onNavy },
+    directoryHint: {
+      fontFamily: font.sans,
+      fontSize: 11,
+      lineHeight: 17,
+      color: c.onNavyMuted,
+      marginTop: space.xs,
+    },
+    directoryArrow: { fontFamily: font.serif, fontSize: 22, color: c.gold },
+
     offeringsActions: { flexDirection: 'row', alignItems: 'center' },
     watchlistToggle: {
       borderWidth: StyleSheet.hairlineWidth,

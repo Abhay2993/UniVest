@@ -94,6 +94,12 @@ framework.
   stacked bar.
 - **University Leaderboard** — institutions ranked by on-platform capital
   with milestone attestation rates (`university_leaderboard` view).
+- **Spinout Directory** — a read-only, factual reference of ~29 notable real
+  spinouts from Oxford, MIT, and Harvard (name, sector, public listing status,
+  and an accurate description of the actual science). Deliberately carries no
+  fundraising, attestation, or invest actions — it is educational reference
+  material, kept separate from the app's fictional investable offerings so no
+  real company is depicted with fabricated financial data.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual
