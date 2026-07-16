@@ -15,6 +15,10 @@
     },
     "android": {
       "package": "com.univest.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
     }
   }
 }
