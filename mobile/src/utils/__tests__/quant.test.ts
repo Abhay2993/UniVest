@@ -2,6 +2,7 @@ import {
   buildMilestoneNodes,
   currentTRL,
   liquidityMetrics,
+  milestoneSlipProbability,
   mulberry32,
   portfolioFactorExposure,
   portfolioUnderScenario,
@@ -106,6 +107,52 @@ describe('scenario stress testing', () => {
     );
     expect(fusionSlip.expectedMultiple).toBeLessThan(baseline.expectedMultiple);
     expect(fusionSlip.pTotalLoss).toBeGreaterThan(baseline.pTotalLoss);
+  });
+});
+
+describe('milestone-slip model', () => {
+  it('returns probabilities in [0.05, 0.95] and 0 for completed milestones', () => {
+    for (const st of STARTUPS) {
+      for (const m of st.milestones) {
+        const p = milestoneSlipProbability(st, m);
+        if (m.status === 'completed') {
+          expect(p).toBe(0);
+        } else {
+          expect(p).toBeGreaterThanOrEqual(0.05);
+          expect(p).toBeLessThanOrEqual(0.95);
+        }
+      }
+    }
+  });
+
+  it('deeper (later) milestones carry more slip risk than nearer ones', () => {
+    const remaining = helion.milestones.filter((m) => m.status !== 'completed');
+    const first = milestoneSlipProbability(helion, remaining[0]);
+    const last = milestoneSlipProbability(helion, remaining[remaining.length - 1]);
+    expect(last).toBeGreaterThan(first);
+  });
+
+  it('harder sectors slip more, all else equal', () => {
+    const meridian = STARTUPS.find((s) => s.name === 'Meridian Robotics')!; // AI & Robotics, 0.5
+    const helionActive = helion.milestones.find((m) => m.status === 'in_progress')!;
+    const meridianActive = meridian.milestones.find((m) => m.status === 'in_progress')!;
+    // Fusion (0.9 sector risk) vs robotics (0.5) — fusion's active milestone slips more.
+    expect(milestoneSlipProbability(helion, helionActive)).toBeGreaterThan(
+      milestoneSlipProbability(meridian, meridianActive),
+    );
+  });
+
+  it('slip-aware valuation is more conservative than the baseline tree', () => {
+    const baseline = valuationForStartup(helion, { iterations: 6000 }, 314);
+    const slipAware = valuationForStartup(helion, { iterations: 6000, slipAware: true }, 314);
+    expect(slipAware.expected).toBeLessThan(baseline.expected);
+    expect(slipAware.pTotalLoss).toBeGreaterThanOrEqual(baseline.pTotalLoss);
+    // And the node-level dampening is visible directly.
+    const rawNodes = buildMilestoneNodes(helion, false);
+    const dampedNodes = buildMilestoneNodes(helion, true);
+    for (let i = 0; i < rawNodes.length; i++) {
+      expect(dampedNodes[i].completionProb).toBeLessThanOrEqual(rawNodes[i].completionProb);
+    }
   });
 });
 

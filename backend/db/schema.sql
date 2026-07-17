@@ -227,6 +227,21 @@ CREATE TABLE milestone_attestations (
     UNIQUE (milestone_id, key_id)
 );
 
+-- W3C Verifiable Credential per attestation: the full signed credential JSON
+-- plus an anchor reference, so ANYONE — not just the app — can independently
+-- verify that the named attestor key signed this milestone. Public read is
+-- the point (no RLS). Production anchors the hash to a public ledger; the
+-- demo records a deterministic anchor reference.
+CREATE TABLE attestation_credentials (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    attestation_id UUID        NOT NULL UNIQUE REFERENCES milestone_attestations(id) ON DELETE CASCADE,
+    credential     JSONB       NOT NULL,                        -- signed W3C VC (incl. proof)
+    vc_hash        BYTEA       NOT NULL,                        -- SHA-256 of canonical payload
+    anchor_chain   TEXT        NOT NULL DEFAULT 'demo-ledger',
+    anchor_ref     TEXT,                                        -- tx / merkle reference
+    issued_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ----------------------------------------------------------------------------
 -- Deal Q&A (community diligence; the public discussion channel Reg CF expects)
 -- Author badges (founder / TTO / investor) derive from users.role and

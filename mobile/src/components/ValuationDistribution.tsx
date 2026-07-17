@@ -22,8 +22,9 @@ export function ValuationDistribution({ startup }: { startup: Startup }) {
   const [width, setWidth] = React.useState(0);
 
   // Seeded so the figure is stable across re-renders (deterministic per deal).
+  // slipAware: forward probabilities are dampened by the milestone-slip model.
   const stats = useMemo(
-    () => valuationForStartup(startup, { iterations: 5000 }, hashSeed(startup.id)),
+    () => valuationForStartup(startup, { iterations: 5000, slipAware: true }, hashSeed(startup.id)),
     [startup],
   );
 
@@ -98,8 +99,8 @@ export function ValuationDistribution({ startup }: { startup: Startup }) {
 
       <Text style={s.footnote}>
         Modeled, not guaranteed. Each unhit milestone carries a completion probability (raised by
-        independent attestation) and a valuation step-up on success; a miss returns residual value.
-        Not investment advice.
+        independent attestation, dampened by its predicted slip risk) and a valuation step-up on
+        success; a miss returns residual value. Not investment advice.
       </Text>
     </View>
   );

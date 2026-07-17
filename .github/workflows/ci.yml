@@ -46,6 +46,8 @@ jobs:
           cache-dependency-path: backend/api/package-lock.json
       - run: npm ci
       - run: npm run build
+      - name: Verifiable-credential crypto (Ed25519 sign/verify/tamper)
+        run: node test/vc-crypto.spec.mjs
 
   database:
     name: Database — schema, seed, assertions

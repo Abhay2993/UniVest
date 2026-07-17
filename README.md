@@ -129,6 +129,31 @@ false-precision point estimates.
 - **Liquidity analytics** (Markets tab) — batch-auction microstructure: bid/ask
   depth, implied spread, price impact of selling into the book, clearing-price
   volatility, and a 0–100 liquidity score.
+- **Predictive milestone-slip model** — a logistic model of the probability a
+  forward milestone lands late (sector base rate, sequence depth, execution
+  pace, horizon). Feeds a slip-aware variant of the valuation Monte Carlo and
+  shows per-milestone slip risk in the tracker.
+
+### Intelligence & provenance layer
+
+- **AI science-monitoring agent** (deal page + inbox) — surfaces arXiv/PubMed/
+  USPTO/conference results relevant to a company, each classified by stance
+  (supportive / competitive / neutral). Demo shows curated examples over the
+  fictional portfolio; production runs the agent server-side and pushes new
+  signals to the activity inbox.
+- **Deep-tech knowledge graph** (Discovery) — an ego-graph browser linking
+  startups ↔ founders ↔ papers ↔ patents ↔ universities ↔ topics ↔ competing
+  labs. Tap any node to walk the graph ("who else works on rare-earth-free
+  magnets?" surfaces the investable startup *and* the competing lab).
+- **On-chain verifiable attestations** (`backend/api/src/credentials/`) —
+  milestone attestations published as **W3C Verifiable Credentials signed with
+  real Ed25519** (`node:crypto`). `POST /credentials/attestations/:id/issue`
+  builds and signs the VC; `GET /credentials/attestations/:id` returns it;
+  `POST /credentials/verify` checks the proof against the public attestor
+  registry — no auth required, so anyone can verify independently. Tampering
+  with any field fails verification (proven by a CI crypto test and a live
+  end-to-end tamper test). Demo keys are deterministic; production keys live
+  in the officer's secure enclave and the VC hash anchors to a public ledger.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual

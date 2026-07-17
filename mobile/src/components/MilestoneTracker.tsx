@@ -10,10 +10,11 @@ import {
   UIManager,
   View,
 } from 'react-native';
-import { Milestone } from '../types';
+import { Milestone, Startup } from '../types';
 import { font, Palette, radius, space, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatDate } from '../utils/format';
+import { milestoneSlipProbability } from '../utils/quant';
 import { AttestationStamp } from './AttestationStamp';
 import { ProgressBar } from './ProgressBar';
 
@@ -29,6 +30,8 @@ const QUIET_EASE = LayoutAnimation.create(
 
 interface Props {
   milestones: Milestone[];
+  /** When provided, forward milestones show their predicted slip risk. */
+  startup?: Startup;
 }
 
 /**
@@ -37,7 +40,7 @@ interface Props {
  * plus an expandable, tappable milestone ledger. Completed milestones with
  * founder micro-video updates surface a review chip.
  */
-export function MilestoneTracker({ milestones }: Props) {
+export function MilestoneTracker({ milestones, startup }: Props) {
   const { palette } = useTheme();
   const s = useThemedStyles(makeStyles);
   const [expandedId, setExpandedId] = useState<string | null>(
@@ -77,6 +80,9 @@ export function MilestoneTracker({ milestones }: Props) {
           <MilestoneRow
             key={m.id}
             milestone={m}
+            slipRisk={
+              startup && m.status !== 'completed' ? milestoneSlipProbability(startup, m) : null
+            }
             isLast={i === milestones.length - 1}
             expanded={expandedId === m.id}
             onPress={() => toggle(m.id)}
@@ -89,11 +95,13 @@ export function MilestoneTracker({ milestones }: Props) {
 
 function MilestoneRow({
   milestone,
+  slipRisk,
   isLast,
   expanded,
   onPress,
 }: {
   milestone: Milestone;
+  slipRisk: number | null;
   isLast: boolean;
   expanded: boolean;
   onPress: () => void;
@@ -130,6 +138,12 @@ function MilestoneRow({
         {expanded && (
           <View style={s.detail}>
             <Text style={s.detailText}>{milestone.description}</Text>
+            {slipRisk !== null && (
+              <Text style={[s.slipText, slipRisk >= 0.5 && s.slipTextHigh]}>
+                Slip risk {Math.round(slipRisk * 100)}% — modeled from sector base rate, sequence
+                depth, and this team's execution pace
+              </Text>
+            )}
             {milestone.attestation && <AttestationStamp attestation={milestone.attestation} />}
             {done && milestone.hasVideoUpdate && (
               <View style={s.videoChip}>
@@ -241,6 +255,14 @@ const makeStyles = (c: Palette) => {
       borderLeftColor: c.surfaceMuted,
     },
     detailText: { ...T.body, color: c.inkMuted, fontSize: 13, lineHeight: 19 },
+    slipText: {
+      fontFamily: font.sans,
+      fontSize: 11,
+      lineHeight: 16,
+      color: c.inkFaint,
+      marginTop: space.sm,
+    },
+    slipTextHigh: { color: c.amber, fontWeight: '600' },
     videoChip: {
       flexDirection: 'row',
       alignItems: 'center',

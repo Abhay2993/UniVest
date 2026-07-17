@@ -20,6 +20,7 @@ import { UniversityLeaderboard } from '../components/UniversityLeaderboard';
 import { CompareScreen } from './CompareScreen';
 import { DirectoryScreen } from './DirectoryScreen';
 import { InboxScreen } from './InboxScreen';
+import { KnowledgeGraphScreen } from './KnowledgeGraphScreen';
 
 interface Props {
   onSelectStartup: (startup: Startup) => void;
@@ -42,7 +43,9 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
   const { watchedIds, isFollowing } = useWatchlist();
   const { unreadCount } = useInbox();
 
-  const [view, setView] = useState<'list' | 'map' | 'inbox' | 'compare' | 'directory'>('list');
+  const [view, setView] = useState<'list' | 'map' | 'inbox' | 'compare' | 'directory' | 'graph'>(
+    'list',
+  );
   const [vertical, setVertical] = useState<Vertical | 'All'>('All');
   const [universityId, setUniversityId] = useState<string | null>(null);
   const [watchlistOnly, setWatchlistOnly] = useState(false);
@@ -87,6 +90,10 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
 
   if (view === 'directory') {
     return <DirectoryScreen onClose={() => setView('list')} />;
+  }
+
+  if (view === 'graph') {
+    return <KnowledgeGraphScreen onClose={() => setView('list')} />;
   }
 
   return (
@@ -194,6 +201,23 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
                 <Text style={s.directoryHint}>
                   Explore real spinouts from Oxford, MIT & Harvard — factual reference, not
                   offerings
+                </Text>
+              </View>
+              <Text style={s.directoryArrow}>→</Text>
+            </Pressable>
+
+            <Pressable
+              style={s.directoryCard}
+              onPress={() => setView('graph')}
+              accessibilityRole="button"
+              accessibilityLabel="Open the deep-tech knowledge graph"
+            >
+              <View style={s.directoryLeft}>
+                <Text style={s.directoryOverline}>DISCOVERY</Text>
+                <Text style={s.directoryTitle}>Knowledge Graph</Text>
+                <Text style={s.directoryHint}>
+                  Walk startups → founders → papers → topics → who else is working on the same
+                  science
                 </Text>
               </View>
               <Text style={s.directoryArrow}>→</Text>

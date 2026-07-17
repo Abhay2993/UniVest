@@ -11,6 +11,7 @@ import { InvestPanel } from '../components/InvestPanel';
 import { MilestoneTracker } from '../components/MilestoneTracker';
 import { ProgressBar } from '../components/ProgressBar';
 import { QASection } from '../components/QASection';
+import { ScienceMonitorCard } from '../components/ScienceMonitorCard';
 import { ScienceRiskCard } from '../components/ScienceRiskCard';
 import { ValuationDistribution } from '../components/ValuationDistribution';
 import { VerifiedBadge } from '../components/VerifiedBadge';
@@ -126,9 +127,14 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
           <ScienceRiskCard startup={startup} />
         </View>
 
-        {/* Visual Milestone Tracker */}
+        {/* AI science-monitoring agent */}
         <View style={s.trackerWrap}>
-          <MilestoneTracker milestones={startup.milestones} />
+          <ScienceMonitorCard startup={startup} />
+        </View>
+
+        {/* Visual Milestone Tracker (slip-aware) */}
+        <View style={s.trackerWrap}>
+          <MilestoneTracker milestones={startup.milestones} startup={startup} />
         </View>
 
         {/* Community Diligence Q&A */}

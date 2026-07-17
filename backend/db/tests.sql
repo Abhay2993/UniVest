@@ -71,5 +71,14 @@ BEGIN
     PERFORM 1 FROM university_leaderboard WHERE capital_raised IS NOT NULL;
     ASSERT FOUND, 'university_leaderboard returned nothing';
 
+    ------------------------------------------------------------------
+    -- 5. Verifiable-credential table + FK to attestations
+    ------------------------------------------------------------------
+    INSERT INTO attestation_credentials (attestation_id, credential, vc_hash, anchor_ref)
+    SELECT id, '{"demo":true}'::jsonb, decode('aa','hex'), 'demo:0xtest'
+      FROM milestone_attestations LIMIT 1;
+    PERFORM 1 FROM attestation_credentials WHERE anchor_chain = 'demo-ledger';
+    ASSERT FOUND, 'attestation_credentials default anchor_chain missing';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

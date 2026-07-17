@@ -174,7 +174,24 @@ export type ActivityKind =
   | 'auction_cleared'
   | 'tax_document'
   | 'closing_soon'
-  | 'distribution';
+  | 'distribution'
+  | 'science_signal';
+
+/**
+ * Output of the AI science-monitoring agent: a publication, patent, or
+ * competing-lab result relevant to a portfolio company, with a stance
+ * (supportive of the thesis, competitive threat, or neutral context).
+ */
+export interface ScienceSignal {
+  id: string;
+  startupId: string;
+  source: 'arXiv' | 'PubMed' | 'USPTO' | 'Conference';
+  title: string;
+  summary: string;
+  stance: 'supportive' | 'competitive' | 'neutral';
+  /** ISO date. */
+  date: string;
+}
 
 export interface ActivityItem {
   id: string;

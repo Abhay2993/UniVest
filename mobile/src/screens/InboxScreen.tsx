@@ -11,6 +11,7 @@ const KIND_LABEL: Record<ActivityKind, string> = {
   tax_document: 'TAX',
   closing_soon: 'CLOSING',
   distribution: 'DISTRIBUTION',
+  science_signal: 'SCIENCE',
 };
 
 interface Props {

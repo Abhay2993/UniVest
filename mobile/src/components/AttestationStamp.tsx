@@ -23,6 +23,10 @@ export function AttestationStamp({ attestation }: { attestation: MilestoneAttest
       <Text style={s.meta}>
         Signed {formatDate(attestation.signedAt)} · Ed25519 key {attestation.keyFingerprint}
       </Text>
+      <Text style={s.vc}>
+        ⛓ W3C Verifiable Credential — independently verifiable against the public attestor
+        registry
+      </Text>
     </View>
   );
 }
@@ -49,4 +53,5 @@ const makeStyles = (c: Palette) =>
     },
     verifier: { fontFamily: font.sans, fontSize: 12, fontWeight: '600', color: c.ink },
     meta: { fontFamily: font.sans, fontSize: 10, color: c.inkMuted, marginTop: 1 },
+    vc: { fontFamily: font.sans, fontSize: 9, color: c.inkFaint, marginTop: 4 },
   });

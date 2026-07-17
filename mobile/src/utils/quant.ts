@@ -71,11 +71,48 @@ export const DEFAULT_VALUATION: ValuationOptions = {
 const TOTAL_LOSS_THRESHOLD = 0.1;
 
 /**
+ * Predictive milestone-slip model — probability that a given forward
+ * milestone lands late. A documented logistic blend of sector base rate,
+ * depth in the remaining sequence, status, execution pace (TRL velocity),
+ * and horizon. Production replaces the hand-set weights with a model fit on
+ * historical planned-vs-actual milestone dates; the interface stays the same.
+ */
+export function milestoneSlipProbability(startup: Startup, milestone: Milestone): number {
+  if (milestone.status === 'completed') return 0;
+
+  const remaining = startup.milestones.filter((m) => m.status !== 'completed');
+  const idx = Math.max(0, remaining.findIndex((m) => m.id === milestone.id));
+  const depth = remaining.length <= 1 ? 0 : idx / (remaining.length - 1); // 0..1
+
+  const sector = SECTOR_RISK[startup.vertical] ?? 0.6; // 0.5..0.9
+  const pace = trlVelocity(startup); // levels/yr
+  const paceRelief = clamp(pace / 2, 0, 0.5);
+
+  const horizonYears = Math.max(
+    0,
+    (Date.parse(milestone.date + 'T00:00:00') - Date.now()) / (365.25 * 86_400_000),
+  );
+  const horizonTerm = 0.3 * Math.min(horizonYears / 3, 1);
+
+  const logit =
+    -1.2 +
+    1.6 * sector +
+    0.9 * depth +
+    (milestone.status === 'upcoming' ? 0.4 : 0) -
+    0.8 * paceRelief +
+    horizonTerm;
+
+  return clamp(1 / (1 + Math.exp(-logit)), 0.05, 0.95);
+}
+
+/**
  * Derives the forward milestone nodes for a startup. Completed milestones are
  * already banked (excluded); attestation of past milestones lifts team
- * credibility, nudging every forward probability up.
+ * credibility, nudging every forward probability up. When `slipAware` is set,
+ * each node's completion probability is additionally dampened by its
+ * predicted slip risk — late milestones consume runway and miss windows.
  */
-export function buildMilestoneNodes(startup: Startup): MilestoneNode[] {
+export function buildMilestoneNodes(startup: Startup, slipAware = false): MilestoneNode[] {
   const completed = startup.milestones.filter((m) => m.status === 'completed');
   const attested = completed.filter((m) => m.attestation).length;
   const credibility = completed.length === 0 ? 0 : attested / completed.length; // 0..1
@@ -93,7 +130,11 @@ export function buildMilestoneNodes(startup: Startup): MilestoneNode[] {
       base = 0.65 * Math.pow(0.9, upcomingSeen);
       upcomingSeen += 1;
     }
-    const completionProb = clamp(base + credBoost, 0.3, 0.95);
+    let completionProb = clamp(base + credBoost, 0.3, 0.95);
+    if (slipAware) {
+      const slip = milestoneSlipProbability(startup, m);
+      completionProb = clamp(completionProb * (1 - 0.35 * slip), 0.2, 0.95);
+    }
     // Later milestones (closer to commercialization) carry bigger step-ups.
     const stepUp = 1.3 + 0.06 * indexInRemaining(m, remaining);
     return { completionProb, stepUp };
@@ -156,11 +197,12 @@ export function simulateValuation(
 /** Convenience: valuation distribution as a multiple on invested capital. */
 export function valuationForStartup(
   startup: Startup,
-  options: Partial<ValuationOptions> = {},
+  options: Partial<ValuationOptions> & { slipAware?: boolean } = {},
   seed?: number,
 ): ValuationStats {
+  const { slipAware = false, ...simOptions } = options;
   const rng = seed === undefined ? Math.random : mulberry32(seed);
-  return simulateValuation(buildMilestoneNodes(startup), options, rng);
+  return simulateValuation(buildMilestoneNodes(startup, slipAware), simOptions, rng);
 }
 
 // ---------------------------------------------------------------------------

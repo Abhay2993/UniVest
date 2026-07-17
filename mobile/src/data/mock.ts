@@ -3,6 +3,7 @@ import {
   AuctionWindowData,
   ExitedPosition,
   PortfolioPosition,
+  ScienceSignal,
   Startup,
   SyndicateInfo,
   TaxDocument,
@@ -386,9 +387,74 @@ export const EXITED_POSITIONS: ExitedPosition[] = [
 ];
 
 // ----------------------------------------------------------------------------
+// Science-monitoring agent output. Demo: curated examples referencing the
+// app's FICTIONAL companies and fictional competing labs; production polls
+// arXiv/PubMed/USPTO and scores relevance + stance with the Claude API.
+// ----------------------------------------------------------------------------
+export const SCIENCE_SIGNALS: ScienceSignal[] = [
+  {
+    id: 'sig1',
+    startupId: 's1',
+    source: 'arXiv',
+    title: 'Meiji Superconduct Lab reports 18T rare-earth-free coil (preprint)',
+    summary:
+      'A competing group demonstrates 18T without rare-earth materials — below Helion\'s attested 21T, but with a cheaper deposition process. Watch their next result; the cost axis matters as much as field strength.',
+    stance: 'competitive',
+    date: '2026-07-11',
+  },
+  {
+    id: 'sig2',
+    startupId: 's1',
+    source: 'USPTO',
+    title: 'HTS substrate patent family granted (final two claims)',
+    summary:
+      'The remaining claims in the licensed substrate family were granted, completing IP coverage on the rare-earth-free stack described in the data room.',
+    stance: 'supportive',
+    date: '2026-07-05',
+  },
+  {
+    id: 'sig3',
+    startupId: 's2',
+    source: 'Conference',
+    title: 'Photonic interposer loss below 0.15 dB/hop shown at QIP',
+    summary:
+      'An academic group beat Qubit Foundry\'s published 0.2 dB interposer loss. Their approach is research-line only — no CMOS portability — but it pressures the roadmap\'s scaling headline.',
+    stance: 'competitive',
+    date: '2026-07-08',
+  },
+  {
+    id: 'sig4',
+    startupId: 's3',
+    source: 'PubMed',
+    title: 'Meta-analysis backs autologous scaffolds over polymer-only designs',
+    summary:
+      'A 14-study meta-analysis reports significantly lower thrombosis rates for cell-seeded resorbable scaffolds — directly supportive of Vasca\'s core thesis ahead of Phase I readout.',
+    stance: 'supportive',
+    date: '2026-06-30',
+  },
+  {
+    id: 'sig5',
+    startupId: 's5',
+    source: 'arXiv',
+    title: 'Vascular self-healing composites reviewed as leading aerospace approach',
+    summary:
+      'A survey of self-healing materials ranks replenishable vascular networks (Lattice\'s architecture) ahead of capsule-based systems for repeated-damage aerospace duty cycles.',
+    stance: 'supportive',
+    date: '2026-07-02',
+  },
+];
+
+// ----------------------------------------------------------------------------
 // Activity feed (server-push lands here in production)
 // ----------------------------------------------------------------------------
 export const ACTIVITY_ITEMS: ActivityItem[] = [
+  {
+    id: 'n0',
+    kind: 'science_signal',
+    title: 'Science alert — competing 18T rare-earth-free result',
+    body: 'The science agent flagged an arXiv preprint from a competing lab relevant to your Helion Dynamics position. Stance: competitive. Details on the deal page.',
+    date: '2026-07-11T07:40:00Z',
+  },
   {
     id: 'n1',
     kind: 'distribution',
