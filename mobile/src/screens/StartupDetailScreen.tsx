@@ -11,6 +11,8 @@ import { InvestPanel } from '../components/InvestPanel';
 import { MilestoneTracker } from '../components/MilestoneTracker';
 import { ProgressBar } from '../components/ProgressBar';
 import { QASection } from '../components/QASection';
+import { ScienceRiskCard } from '../components/ScienceRiskCard';
+import { ValuationDistribution } from '../components/ValuationDistribution';
 import { VerifiedBadge } from '../components/VerifiedBadge';
 
 type PitchTab = 'plain' | 'commercial' | 'proof';
@@ -112,6 +114,16 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
         {/* Diligence Copilot — grounded Q&A over the data room */}
         <View style={s.trackerWrap}>
           <CopilotCard startup={startup} />
+        </View>
+
+        {/* Probabilistic milestone-tree valuation */}
+        <View style={s.trackerWrap}>
+          <ValuationDistribution startup={startup} />
+        </View>
+
+        {/* Science risk & technology readiness */}
+        <View style={s.trackerWrap}>
+          <ScienceRiskCard startup={startup} />
         </View>
 
         {/* Visual Milestone Tracker */}

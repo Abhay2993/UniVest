@@ -13,6 +13,7 @@ import { AuctionOrderInput } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useThemedStyles } from '../theme/ThemeContext';
 import { clearUniformPrice } from '../utils/finance';
+import { liquidityMetrics } from '../utils/quant';
 import { ChartPoint, LineChart } from '../components/LineChart';
 
 const QUIET_EASE = LayoutAnimation.create(
@@ -50,6 +51,11 @@ export function MarketsScreen() {
   const history = useMemo<ChartPoint[]>(
     () => ACTIVE_AUCTION.history.map((h) => ({ date: h.date, value: h.price })),
     [],
+  );
+
+  const liquidity = useMemo(
+    () => liquidityMetrics(book, ACTIVE_AUCTION.history.map((h) => h.price), 100),
+    [book],
   );
 
   const daysToClose = Math.max(
@@ -181,6 +187,44 @@ export function MarketsScreen() {
         )}
       </View>
 
+      {/* Liquidity analytics */}
+      <View style={s.card}>
+        <View style={s.liqHeader}>
+          <Text style={s.overline}>Liquidity Analytics</Text>
+          <View style={s.liqScore}>
+            <Text style={s.liqScoreValue}>{liquidity.score}</Text>
+            <Text style={s.liqScoreLabel}>LIQUIDITY SCORE</Text>
+          </View>
+        </View>
+        <View style={s.liqGrid}>
+          <LiqStat
+            label="Implied spread"
+            value={liquidity.spread === null ? '—' : `$${liquidity.spread.toFixed(2)}`}
+          />
+          <LiqStat label="Bid depth" value={`${liquidity.bidDepth.toLocaleString('en-US')}u`} />
+          <LiqStat label="Ask depth" value={`${liquidity.askDepth.toLocaleString('en-US')}u`} />
+          <LiqStat
+            label="Clearing volatility"
+            value={`$${liquidity.clearingVolatility.toFixed(2)}`}
+          />
+        </View>
+        <View style={s.liqImpact}>
+          <Text style={s.liqImpactText}>
+            Selling 100 units clears near{' '}
+            <Text style={s.liqImpactStrong}>
+              {liquidity.sellImpactVWAP === null ? '—' : `$${liquidity.sellImpactVWAP.toFixed(2)}`}
+            </Text>
+            {liquidity.sellImpactPct !== null
+              ? ` — a ${liquidity.sellImpactPct.toFixed(1)}% impact below the best bid.`
+              : '.'}
+          </Text>
+        </View>
+        <Text style={s.footnote}>
+          Real market microstructure — depth, spread, and price impact — the legitimate quant for a
+          batch-auction venue.
+        </Text>
+      </View>
+
       {/* Clearing history */}
       <View style={s.card}>
         <Text style={s.overline}>Clearing Price — Past Windows</Text>
@@ -193,6 +237,15 @@ export function MarketsScreen() {
       </View>
     </ScrollView>
   );
+
+  function LiqStat({ label, value }: { label: string; value: string }) {
+    return (
+      <View style={s.liqStat}>
+        <Text style={s.liqStatValue}>{value}</Text>
+        <Text style={s.liqStatLabel}>{label}</Text>
+      </View>
+    );
+  }
 
   function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
     return (
@@ -338,5 +391,22 @@ const makeStyles = (c: Palette) => {
     withdraw: { fontFamily: font.sans, fontSize: 12, color: c.danger, fontWeight: '600' },
 
     chartWrap: { marginTop: space.md },
+
+    liqHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    liqScore: { alignItems: 'flex-end' },
+    liqScoreValue: { fontFamily: font.serif, fontSize: 26, color: c.bronze },
+    liqScoreLabel: { fontFamily: font.sans, fontSize: 8, letterSpacing: 1.1, color: c.inkFaint, fontWeight: '700' },
+    liqGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space.md },
+    liqStat: { width: '50%', paddingVertical: space.sm },
+    liqStatValue: { ...T.financial, fontSize: 16, fontWeight: '600' },
+    liqStatLabel: { ...T.caption, fontSize: 10, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 1 },
+    liqImpact: {
+      marginTop: space.sm,
+      borderLeftWidth: 2,
+      borderLeftColor: c.gold,
+      paddingLeft: space.md,
+    },
+    liqImpactText: { ...T.body, fontSize: 13, lineHeight: 20, color: c.inkMuted },
+    liqImpactStrong: { color: c.ink, fontWeight: '700' },
   });
 };

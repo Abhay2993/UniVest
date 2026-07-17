@@ -100,6 +100,35 @@ framework.
   fundraising, attestation, or invest actions — it is educational reference
   material, kept separate from the app's fictional investable offerings so no
   real company is depicted with fabricated financial data.
+
+### Quant engine (built for deep-tech, not borrowed from equities)
+
+Illiquid, milestone-driven science bets need different quant than public
+equities — no price series, so no technical indicators. All models live in
+[`mobile/src/utils/quant.ts`](mobile/src/utils/quant.ts) (pure, seedable,
+unit-tested) and present distributions with explicit uncertainty, never
+false-precision point estimates.
+
+- **Probabilistic milestone-tree valuation** (deal page) — a seeded Monte
+  Carlo over each startup's remaining milestones: every unhit milestone has a
+  completion probability (raised by independent attestation) and a valuation
+  step-up on success; a miss returns residual value. Renders as a histogram
+  with expected multiple, P10/P50/P90 bands, and an explicit probability of
+  total loss.
+- **TRL + Science-Risk score** (deal page) — NASA Technology Readiness Level
+  (1–9) derived from sector start + completed milestones, TRL velocity, and a
+  0–100 science-risk score blending TRL gap, sector prior, and attestation
+  rate.
+- **Factor-based portfolio analytics** (Portfolio tab) — exposure by vertical,
+  TRL band, time-to-liquidity, and university with a plain-English
+  concentration note and weighted science-risk, all from cost-basis weights
+  (no return series required).
+- **Scenario stress testing** (Portfolio tab) — sector shocks (fusion slip,
+  quantum winter, broad drawdown) applied to the milestone model, revaluing
+  the book's expected multiple and loss probability vs. baseline.
+- **Liquidity analytics** (Markets tab) — batch-auction microstructure: bid/ask
+  depth, implied spread, price impact of selling into the book, clearing-price
+  volatility, and a 0–100 liquidity score.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual

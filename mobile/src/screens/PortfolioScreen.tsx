@@ -8,6 +8,7 @@ import { usePortfolio } from '../state/PortfolioContext';
 import { CashFlow, tvpi, xirr } from '../utils/finance';
 import { formatDate, formatMoney } from '../utils/format';
 import { ChartPoint, LineChart } from '../components/LineChart';
+import { PortfolioRiskCard } from '../components/PortfolioRiskCard';
 
 interface Props {
   onSelectStartup: (startup: Startup) => void;
@@ -126,6 +127,11 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
           );
         })}
       </View>
+
+      {/* Factor exposure + scenario stress testing (milestone-tree Monte Carlo) */}
+      <PortfolioRiskCard
+        positions={PORTFOLIO_POSITIONS.map((p) => ({ startupId: p.startupId, costBasis: p.costBasis }))}
+      />
 
       {/* Realized exits: the distribution waterfall */}
       {EXITED_POSITIONS.map((exit) => {
