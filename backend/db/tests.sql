@@ -89,5 +89,32 @@ BEGIN
     -- 16 of 20 outcomes are 1 → observed 0.8 for the high-confidence band.
     ASSERT v_price = 0.80, 'reliability view mis-computed observed_freq: ' || COALESCE(v_price::text, 'NULL');
 
+    ------------------------------------------------------------------
+    -- 7. University OS: portfolio rollup + cap-table CHECK + consortia
+    ------------------------------------------------------------------
+    -- MIT: Helion 18.5M*12% + Photoniq 62M*8% + Aeon 21M*12%
+    --      = 2.22M + 4.96M + 2.52M = 9.70M university equity value.
+    SELECT university_equity_value INTO v_raised
+      FROM university_portfolio_value
+     WHERE university_id = '00000000-0000-0000-0000-0000000000aa';
+    ASSERT v_raised = 9700000, 'university_equity_value wrong: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- Cap-table CHECK must reject a table that does not sum to 100.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO tto_portfolio_companies
+          (university_id, name, vertical, stage, pct_founders, pct_university, pct_option_pool, pct_investors)
+        VALUES ('00000000-0000-0000-0000-0000000000aa','Bad Co','X','Seed',50,10,10,10); -- sums to 80
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'cap-table sum CHECK did not reject an invalid split';
+
+    -- Consortium is genuinely cross-university (lead is a member).
+    PERFORM 1 FROM consortium_members
+      WHERE consortium_id = '00000000-0000-0000-0000-0000000000e1'
+        AND university_id = '00000000-0000-0000-0000-0000000000aa';
+    ASSERT FOUND, 'consortium lead is not recorded as a member';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

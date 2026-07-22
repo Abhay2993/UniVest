@@ -173,6 +173,25 @@ false-precision point estimates.
   sub-indices (base 100 at inception) computed from aggregate NAV progress,
   with total and annualized returns. If the category cites it as the reference
   rate, that's a brand + data moat.
+
+### Supply-side lock-in — University OS
+
+- **University OS** (Tools → University Portal) — the TTO portal deepened from
+  a launch tool into an operating system for the whole tech-transfer office: a
+  **Portfolio desk** managing every spinout the university holds a stake in,
+  *including ones it didn't fund on UniVest* (TRACKED vs UNIVEST), with
+  per-company cap tables (university stake highlighted), an aggregate
+  university-equity-value rollup, exposure-by-vertical, and an exportable
+  LP/stakeholder report. Once a TTO runs its whole book here, switching cost is
+  enormous. Pure aggregation in
+  [`mobile/src/utils/tto.ts`](mobile/src/utils/tto.ts) (unit-tested); backend
+  `tto_portfolio_companies` table (with a cap-table-sum CHECK constraint) +
+  `university_portfolio_value` view + `GET /universities/:id/portfolio`.
+- **Cross-university consortia** — themed vehicles co-sponsored by multiple
+  universities (e.g. a Global Fusion Consortium led by MIT with Oxford and
+  ETH), with pooled capital, shared deal flow, and member lists. Institutional
+  entanglement that's hard to unwind. Backend `consortia` + `consortium_members`
+  tables + `GET /universities/:id/consortia`.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual

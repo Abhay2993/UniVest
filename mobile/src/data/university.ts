@@ -1,0 +1,130 @@
+/**
+ * The demo TTO officer's University-OS data: MIT's full spinout portfolio
+ * (on- and off-platform) and the cross-university consortia MIT participates
+ * in. All companies are FICTIONAL (consistent with the app's universe) so no
+ * real spinout is depicted with a fabricated cap table. Production reads this
+ * from the tto_portfolio_companies / consortia tables.
+ */
+import { Consortium, SpinoutHolding } from '../utils/tto';
+
+export const UNIVERSITY_NAME = 'MIT';
+
+export const MIT_PORTFOLIO: SpinoutHolding[] = [
+  {
+    id: 'h1',
+    name: 'Helion Dynamics',
+    vertical: 'Fusion Energy',
+    stage: 'Seed (crowd SPV)',
+    onPlatform: true,
+    raisedToDate: 1_870_000,
+    postMoney: 18_500_000,
+    capTable: { founders: 62, university: 12, optionPool: 10, investors: 16 },
+    milestonesCompleted: 2,
+    milestonesTotal: 5,
+    nextMilestone: 'Pilot Manufacturing Line',
+    lastUpdate: '2026-01-30',
+  },
+  {
+    id: 'h2',
+    name: 'Photoniq Systems',
+    vertical: 'Quantum Computing',
+    stage: 'Series A',
+    onPlatform: false,
+    raisedToDate: 14_000_000,
+    postMoney: 62_000_000,
+    capTable: { founders: 48, university: 8, optionPool: 14, investors: 30 },
+    milestonesCompleted: 4,
+    milestonesTotal: 6,
+    nextMilestone: 'Foundry tape-out',
+    lastUpdate: '2026-06-18',
+  },
+  {
+    id: 'h3',
+    name: 'Cortex Bioscaffold',
+    vertical: 'MedTech',
+    stage: 'Pre-seed',
+    onPlatform: false,
+    raisedToDate: 750_000,
+    postMoney: 6_000_000,
+    capTable: { founders: 70, university: 15, optionPool: 8, investors: 7 },
+    milestonesCompleted: 1,
+    milestonesTotal: 4,
+    nextMilestone: 'IND-enabling studies',
+    lastUpdate: '2026-05-02',
+  },
+  {
+    id: 'h4',
+    name: 'Aeon Grid Storage',
+    vertical: 'Advanced Materials',
+    stage: 'Seed',
+    onPlatform: false,
+    raisedToDate: 3_200_000,
+    postMoney: 21_000_000,
+    capTable: { founders: 58, university: 12, optionPool: 12, investors: 18 },
+    milestonesCompleted: 2,
+    milestonesTotal: 5,
+    nextMilestone: '10 kWh pack field test',
+    lastUpdate: '2026-06-30',
+  },
+  {
+    id: 'h5',
+    name: 'Verdant Robotics Lab',
+    vertical: 'AI & Robotics',
+    stage: 'Seed (crowd SPV)',
+    onPlatform: true,
+    raisedToDate: 900_000,
+    postMoney: 9_500_000,
+    capTable: { founders: 60, university: 10, optionPool: 14, investors: 16 },
+    milestonesCompleted: 2,
+    milestonesTotal: 4,
+    nextMilestone: 'Commercial pilot #2',
+    lastUpdate: '2026-05-22',
+  },
+  {
+    id: 'h6',
+    name: 'Halcyon Fusion Materials',
+    vertical: 'Fusion Energy',
+    stage: 'Pre-seed',
+    onPlatform: false,
+    raisedToDate: 500_000,
+    postMoney: 4_500_000,
+    capTable: { founders: 68, university: 15, optionPool: 10, investors: 7 },
+    milestonesCompleted: 0,
+    milestonesTotal: 4,
+    nextMilestone: 'First-wall coupon test',
+    lastUpdate: '2026-04-14',
+  },
+];
+
+export const CONSORTIA: Consortium[] = [
+  {
+    id: 'c1',
+    name: 'Global Fusion Consortium',
+    thesis: 'Pool fusion deal flow and standardize IP terms across leading fusion programs.',
+    vertical: 'Fusion Energy',
+    members: ['MIT', 'Oxford', 'ETH'],
+    leadUniversity: 'MIT',
+    committedCapital: 40_000_000,
+    deals: 7,
+  },
+  {
+    id: 'c2',
+    name: 'Quantum Frontier Alliance',
+    thesis: 'Co-sponsor early quantum hardware spinouts with shared fabrication access.',
+    vertical: 'Quantum Computing',
+    members: ['ETH', 'KAIST', 'MIT'],
+    leadUniversity: 'ETH',
+    committedCapital: 25_000_000,
+    deals: 4,
+  },
+  {
+    id: 'c3',
+    name: 'MedTech Translational Fund',
+    thesis: 'Bridge the valley of death for clinical-stage device spinouts.',
+    vertical: 'MedTech',
+    members: ['Oxford', 'MIT'],
+    leadUniversity: 'Oxford',
+    committedCapital: 18_000_000,
+    deals: 5,
+  },
+];

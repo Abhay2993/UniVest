@@ -118,6 +118,27 @@ INSERT INTO tax_documents (user_id, spv_id, tax_year, kind, issued_at)
 VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000af',2025,'schedule_k1', now() - interval '120 days')
 ON CONFLICT DO NOTHING;
 
+-- University OS: MIT's portfolio (on- and off-platform) + a cross-university
+-- consortium it leads.
+INSERT INTO tto_portfolio_companies
+  (university_id, name, vertical, stage, on_platform, startup_id, raised_to_date, post_money,
+   pct_founders, pct_university, pct_option_pool, pct_investors,
+   milestones_completed, milestones_total, next_milestone, last_update)
+VALUES
+  ('00000000-0000-0000-0000-0000000000aa','Helion Dynamics','Fusion Energy','Seed (crowd SPV)',TRUE,
+   '00000000-0000-0000-0000-0000000000ab',1870000,18500000,62,12,10,16,2,5,'Pilot Manufacturing Line','2026-01-30'),
+  ('00000000-0000-0000-0000-0000000000aa','Photoniq Systems','Quantum Computing','Series A',FALSE,
+   NULL,14000000,62000000,48,8,14,30,4,6,'Foundry tape-out','2026-06-18'),
+  ('00000000-0000-0000-0000-0000000000aa','Aeon Grid Storage','Advanced Materials','Seed',FALSE,
+   NULL,3200000,21000000,58,12,12,18,2,5,'10 kWh pack field test','2026-06-30');
+
+INSERT INTO consortia (id, name, thesis, vertical, lead_university_id, committed_capital, deals)
+VALUES ('00000000-0000-0000-0000-0000000000e1','Global Fusion Consortium',
+        'Pool fusion deal flow and standardize IP terms across leading fusion programs.',
+        'Fusion Energy','00000000-0000-0000-0000-0000000000aa',40000000,7);
+INSERT INTO consortium_members (consortium_id, university_id, commitment)
+VALUES ('00000000-0000-0000-0000-0000000000e1','00000000-0000-0000-0000-0000000000aa',18000000);
+
 -- Prediction ledger: resolved slip predictions across two probability bands,
 -- so model_reliability and the calibration endpoint have data to compute over.
 INSERT INTO model_predictions (model, subject_kind, subject_id, predicted_prob, outcome, resolved_at)

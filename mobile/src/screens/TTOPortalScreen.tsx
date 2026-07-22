@@ -10,9 +10,15 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { STARTUPS } from '../data/mock';
-import { font, Palette, radius, space, typeStyles } from '../theme/tokens';
+import { CONSORTIA, MIT_PORTFOLIO } from '../data/university';
+import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
-import { formatMoneyCompact } from '../utils/format';
+import { formatMoney, formatMoneyCompact } from '../utils/format';
+import {
+  consortiumTotalCommitted,
+  portfolioByVertical,
+  portfolioStats,
+} from '../utils/tto';
 
 const QUIET_EASE = LayoutAnimation.create(
   240,
@@ -20,7 +26,7 @@ const QUIET_EASE = LayoutAnimation.create(
   LayoutAnimation.Properties.opacity,
 );
 
-type Section = 'launch' | 'milestones' | 'attest';
+type Section = 'portfolio' | 'launch' | 'milestones' | 'attest' | 'consortia';
 
 /** Demo signing identity — production keys live in the officer's secure enclave. */
 const OFFICER = { name: 'K. Brennan', org: 'MIT Technology Licensing Office', keyId: '8F3A·22C1' };
@@ -30,14 +36,17 @@ interface Props {
 }
 
 /**
- * University Portal — the supply side. Three flows:
- *   Launch  — click-and-agree standardized deal templates (USIT / US-BOLT)
- *   Updates — milestone composer with micro-video attach, pushed to investors
- *   Attest  — review evidence and sign milestones with the registered key
+ * University Portal — the supply-side operating system. Five flows:
+ *   Portfolio  — the TTO's whole spinout book (on- and off-platform), cap
+ *                tables, and an LP/stakeholder report — the lock-in surface
+ *   Launch     — click-and-agree standardized deal templates (USIT / US-BOLT)
+ *   Updates    — milestone composer with micro-video attach
+ *   Attest     — review evidence and sign milestones with the registered key
+ *   Consortia  — cross-university co-sponsored vehicles
  */
 export function TTOPortalScreen({ onClose }: Props) {
   const s = useThemedStyles(makeStyles);
-  const [section, setSection] = useState<Section>('launch');
+  const [section, setSection] = useState<Section>('portfolio');
 
   return (
     <View style={s.screen}>
@@ -45,16 +54,23 @@ export function TTOPortalScreen({ onClose }: Props) {
         <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close university portal">
           <Text style={s.back}>← Tools</Text>
         </Pressable>
-        <Text style={s.title}>University Portal</Text>
+        <Text style={s.title}>University OS</Text>
         <Text style={s.subtitle}>
           {OFFICER.name} · {OFFICER.org} · signing key {OFFICER.keyId}
         </Text>
-        <View style={s.sectionTabs}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.sectionTabs}
+          contentContainerStyle={s.sectionTabsContent}
+        >
           {(
             [
+              ['portfolio', 'Portfolio'],
               ['launch', 'Launch'],
               ['milestones', 'Updates'],
               ['attest', 'Attest'],
+              ['consortia', 'Consortia'],
             ] as const
           ).map(([key, label]) => (
             <Pressable
@@ -72,14 +88,238 @@ export function TTOPortalScreen({ onClose }: Props) {
               </Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+        {section === 'portfolio' && <PortfolioDesk />}
         {section === 'launch' && <LaunchWizard />}
         {section === 'milestones' && <MilestoneComposer />}
         {section === 'attest' && <AttestationDesk />}
+        {section === 'consortia' && <ConsortiaDesk />}
       </ScrollView>
+    </View>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// 0) Portfolio Desk — the whole spinout book + LP/stakeholder report
+// ----------------------------------------------------------------------------
+function PortfolioDesk() {
+  const s = useThemedStyles(makeStyles);
+  const { palette } = useTheme();
+  const stats = useMemo(() => portfolioStats(MIT_PORTFOLIO), []);
+  const byVertical = useMemo(() => portfolioByVertical(MIT_PORTFOLIO), []);
+  const [reportOut, setReportOut] = useState(false);
+
+  return (
+    <>
+      <View style={s.card}>
+        <Text style={s.overline}>Portfolio Overview</Text>
+        <Text style={s.hint}>
+          Every spinout the office holds a stake in — including {stats.offPlatform} tracked
+          off-platform. Your whole book, one dashboard.
+        </Text>
+        <View style={s.statGrid}>
+          <Stat label="Spinouts" value={String(stats.count)} sub={`${stats.onPlatform} on UniVest`} s={s} />
+          <Stat label="University equity" value={formatMoneyCompact(stats.universityEquityValue)} sub="post-money value" gold s={s} />
+          <Stat label="Portfolio value" value={formatMoneyCompact(stats.portfolioValue)} sub="aggregate post-money" s={s} />
+          <Stat label="Avg progress" value={`${Math.round(stats.avgProgress * 100)}%`} sub="milestones complete" s={s} />
+        </View>
+      </View>
+
+      <View style={s.card}>
+        <Text style={s.overline}>LP / Stakeholder Report</Text>
+        <Text style={s.hint}>
+          Board- and LP-ready snapshot generated from the live portfolio.
+        </Text>
+        <View style={s.reportRow}>
+          <Text style={s.reportLabel}>University equity value</Text>
+          <Text style={s.reportValue}>{formatMoney(stats.universityEquityValue)}</Text>
+        </View>
+        <View style={s.reportRow}>
+          <Text style={s.reportLabel}>Capital raised (all spinouts)</Text>
+          <Text style={s.reportValue}>{formatMoney(stats.totalRaised)}</Text>
+        </View>
+        <View style={s.reportRow}>
+          <Text style={s.reportLabel}>Milestones completed</Text>
+          <Text style={s.reportValue}>{stats.milestonesCompleted}</Text>
+        </View>
+        <Text style={s.groupTitle}>EXPOSURE BY VERTICAL</Text>
+        <View style={s.stackBar}>
+          {byVertical.map((v, i) => (
+            <View
+              key={v.vertical}
+              style={[
+                s.segment,
+                {
+                  flex: Math.max(v.weight, 0.001),
+                  backgroundColor: palette.chartCategorical[i % palette.chartCategorical.length],
+                  marginLeft: i === 0 ? 0 : 2,
+                },
+              ]}
+            />
+          ))}
+        </View>
+        {byVertical.map((v, i) => (
+          <View key={v.vertical} style={s.legendRow}>
+            <View style={[s.swatch, { backgroundColor: palette.chartCategorical[i % palette.chartCategorical.length] }]} />
+            <Text style={s.legendLabel}>{v.vertical}</Text>
+            <Text style={s.legendValue}>{Math.round(v.weight * 100)}%</Text>
+          </View>
+        ))}
+        <Pressable
+          style={s.cta}
+          onPress={() => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            LayoutAnimation.configureNext(QUIET_EASE);
+            setReportOut(true);
+          }}
+          accessibilityRole="button"
+        >
+          <Text style={s.ctaText}>{reportOut ? '✓ Report Exported (PDF)' : 'Export Quarterly Report'}</Text>
+        </Pressable>
+      </View>
+
+      <View style={s.card}>
+        <Text style={s.overline}>Spinout Cap Tables</Text>
+        {MIT_PORTFOLIO.map((h, i) => (
+          <View key={h.id} style={[s.holding, i === MIT_PORTFOLIO.length - 1 && s.holdingLast]}>
+            <View style={s.holdingHeader}>
+              <View style={s.holdingLeft}>
+                <Text style={s.holdingName}>{h.name}</Text>
+                <Text style={s.holdingMeta}>
+                  {h.vertical} · {h.stage}
+                </Text>
+              </View>
+              <View style={[s.platformChip, h.onPlatform ? s.platformOn : s.platformOff]}>
+                <Text style={[s.platformText, h.onPlatform ? s.platformTextOn : s.platformTextOff]}>
+                  {h.onPlatform ? 'UNIVEST' : 'TRACKED'}
+                </Text>
+              </View>
+            </View>
+            {/* Cap-table bar: university stake highlighted in gold */}
+            <View style={s.capBar}>
+              {(
+                [
+                  ['founders', h.capTable.founders, palette.chartCategorical[0]],
+                  ['university', h.capTable.university, palette.gold],
+                  ['optionPool', h.capTable.optionPool, palette.chartCategorical[2]],
+                  ['investors', h.capTable.investors, palette.chartCategorical[3]],
+                ] as const
+              ).map(([k, pct, color], j) => (
+                <View
+                  key={k}
+                  style={[s.capSeg, { flex: Math.max(pct, 0.001), backgroundColor: color, marginLeft: j === 0 ? 0 : 2 }]}
+                />
+              ))}
+            </View>
+            <View style={s.holdingFooter}>
+              <Text style={s.holdingUni}>University {h.capTable.university}%</Text>
+              <Text style={s.holdingNext}>
+                {h.milestonesCompleted}/{h.milestonesTotal} · next: {h.nextMilestone}
+              </Text>
+            </View>
+          </View>
+        ))}
+        <Text style={s.footnote}>
+          Off-platform spinouts are tracked here even though they didn't raise on UniVest — the
+          office runs its whole portfolio from one place.
+        </Text>
+      </View>
+    </>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Cross-university consortia
+// ----------------------------------------------------------------------------
+function ConsortiaDesk() {
+  const s = useThemedStyles(makeStyles);
+  const total = useMemo(() => consortiumTotalCommitted(CONSORTIA), []);
+  const [proposed, setProposed] = useState(false);
+
+  return (
+    <>
+      <View style={s.card}>
+        <Text style={s.overline}>Cross-University Consortia</Text>
+        <Text style={s.hint}>
+          Themed vehicles co-sponsored by multiple universities — shared deal flow, standardized
+          terms, pooled capital. {formatMoneyCompact(total)} committed across{' '}
+          {CONSORTIA.length} vehicles.
+        </Text>
+      </View>
+
+      {CONSORTIA.map((c) => (
+        <View key={c.id} style={s.card}>
+          <View style={s.consortiumHeader}>
+            <Text style={s.consortiumName}>{c.name}</Text>
+            {c.leadUniversity === OFFICER.org.split(' ')[0] || c.leadUniversity === 'MIT' ? (
+              <View style={s.leadChip}>
+                <Text style={s.leadText}>{c.leadUniversity === 'MIT' ? 'YOU LEAD' : 'LEAD'}</Text>
+              </View>
+            ) : null}
+          </View>
+          <Text style={s.consortiumThesis}>{c.thesis}</Text>
+          <View style={s.memberRow}>
+            {c.members.map((m) => (
+              <View key={m} style={[s.memberChip, m === 'MIT' && s.memberChipYou]}>
+                <Text style={[s.memberText, m === 'MIT' && s.memberTextYou]}>{m}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={s.consortiumStats}>
+            <View style={s.consortiumStat}>
+              <Text style={s.consortiumStatValue}>{formatMoneyCompact(c.committedCapital)}</Text>
+              <Text style={s.consortiumStatLabel}>Committed</Text>
+            </View>
+            <View style={s.consortiumStat}>
+              <Text style={s.consortiumStatValue}>{c.deals}</Text>
+              <Text style={s.consortiumStatLabel}>Deals</Text>
+            </View>
+            <View style={s.consortiumStat}>
+              <Text style={s.consortiumStatValue}>{c.members.length}</Text>
+              <Text style={s.consortiumStatLabel}>Universities</Text>
+            </View>
+          </View>
+        </View>
+      ))}
+
+      <Pressable
+        style={[s.card, s.proposeCard]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          LayoutAnimation.configureNext(QUIET_EASE);
+          setProposed(true);
+        }}
+        accessibilityRole="button"
+      >
+        <Text style={s.proposeText}>
+          {proposed ? '✓ Proposal drafted — invite co-sponsors' : '+ Propose a new consortium'}
+        </Text>
+      </Pressable>
+    </>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  sub,
+  gold,
+  s,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  gold?: boolean;
+  s: ReturnType<typeof makeStyles>;
+}) {
+  return (
+    <View style={s.statCell}>
+      <Text style={[s.statCellValue, gold && s.statCellValueGold]}>{value}</Text>
+      <Text style={s.statCellLabel}>{label}</Text>
+      <Text style={s.statCellSub}>{sub}</Text>
     </View>
   );
 }
@@ -477,7 +717,8 @@ const makeStyles = (c: Palette) => {
     back: { fontFamily: font.sans, fontSize: 13, color: c.onNavyMuted, marginBottom: space.md },
     title: { fontFamily: font.serif, fontSize: 26, lineHeight: 34, color: c.onNavy },
     subtitle: { fontFamily: font.sans, fontSize: 11, color: c.onNavyMuted, marginTop: space.xs },
-    sectionTabs: { flexDirection: 'row', marginTop: space.lg },
+    sectionTabs: { marginTop: space.lg },
+    sectionTabsContent: { paddingRight: space.lg },
     sectionTab: { paddingVertical: space.sm + 2, marginRight: space.lg },
     sectionTabActive: { borderBottomWidth: 2, borderBottomColor: c.gold },
     sectionTabText: { fontFamily: font.sans, fontSize: 13, color: c.onNavyMuted },
@@ -626,5 +867,74 @@ const makeStyles = (c: Palette) => {
     },
     evidenceTitle: { ...T.body, fontWeight: '600', fontSize: 12, marginBottom: 4 },
     evidenceRow: { ...T.caption, fontSize: 12, lineHeight: 18, marginBottom: 2 },
+
+    // Portfolio desk
+    statGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space.sm },
+    statCell: { width: '50%', paddingVertical: space.sm },
+    statCellValue: { ...T.financial, fontSize: 18, fontWeight: '600', ...tabularNums },
+    statCellValueGold: { color: c.bronze },
+    statCellLabel: { ...T.caption, fontSize: 10, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 1 },
+    statCellSub: { fontFamily: font.sans, fontSize: 9, color: c.inkFaint, marginTop: 1 },
+    reportRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.hairline,
+      paddingVertical: space.sm,
+    },
+    reportLabel: { ...T.body, fontSize: 13, color: c.inkMuted },
+    reportValue: { ...T.financial, fontSize: 14, fontWeight: '600' },
+    groupTitle: {
+      fontFamily: font.sans,
+      fontSize: 9,
+      letterSpacing: 1.2,
+      color: c.inkMuted,
+      marginTop: space.md,
+      marginBottom: space.sm,
+    },
+    stackBar: { flexDirection: 'row', height: 14, borderRadius: radius.sm, overflow: 'hidden', marginBottom: space.sm },
+    segment: { height: '100%' },
+    legendRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 3 },
+    swatch: { width: 9, height: 9, borderRadius: 2, marginRight: space.sm },
+    legendLabel: { ...T.body, fontSize: 12, flex: 1 },
+    legendValue: { ...T.financial, fontSize: 12, fontWeight: '600' },
+
+    holding: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.hairline, paddingVertical: space.md },
+    holdingLast: {},
+    holdingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: space.sm },
+    holdingLeft: { flex: 1, paddingRight: space.sm },
+    holdingName: { ...T.body, fontWeight: '600', fontSize: 14 },
+    holdingMeta: { fontFamily: font.sans, fontSize: 11, color: c.inkMuted, marginTop: 1 },
+    platformChip: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 },
+    platformOn: { borderColor: c.gold, backgroundColor: c.surfaceGoldTint },
+    platformOff: { borderColor: c.hairline },
+    platformText: { fontFamily: font.sans, fontSize: 8, letterSpacing: 1, fontWeight: '700' },
+    platformTextOn: { color: c.bronze },
+    platformTextOff: { color: c.inkFaint },
+    capBar: { flexDirection: 'row', height: 10, borderRadius: 2, overflow: 'hidden', marginBottom: 5 },
+    capSeg: { height: '100%' },
+    holdingFooter: { flexDirection: 'row', justifyContent: 'space-between' },
+    holdingUni: { fontFamily: font.sans, fontSize: 11, fontWeight: '600', color: c.bronze },
+    holdingNext: { fontFamily: font.sans, fontSize: 11, color: c.inkMuted },
+
+    // Consortia
+    consortiumHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    consortiumName: { fontFamily: font.serif, fontSize: 18, color: c.ink, flex: 1, paddingRight: space.sm },
+    leadChip: { borderWidth: StyleSheet.hairlineWidth, borderColor: c.gold, backgroundColor: c.surfaceGoldTint, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 },
+    leadText: { fontFamily: font.sans, fontSize: 8, letterSpacing: 1, fontWeight: '700', color: c.bronze },
+    consortiumThesis: { ...T.body, fontSize: 13, lineHeight: 20, color: c.inkMuted, marginTop: space.xs, marginBottom: space.md },
+    memberRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.md },
+    memberChip: { borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 4, marginRight: space.sm, marginBottom: space.xs },
+    memberChipYou: { borderColor: c.bronze, backgroundColor: c.surfaceGoldTint },
+    memberText: { fontFamily: font.sans, fontSize: 12, color: c.inkMuted },
+    memberTextYou: { color: c.bronze, fontWeight: '600' },
+    consortiumStats: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.hairline, paddingTop: space.md },
+    consortiumStat: { flex: 1 },
+    consortiumStatValue: { ...T.financial, fontSize: 16, fontWeight: '600' },
+    consortiumStatLabel: { ...T.caption, fontSize: 10, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 1 },
+    proposeCard: { alignItems: 'center' },
+    proposeText: { fontFamily: font.sans, fontSize: 13, fontWeight: '600', color: c.bronze },
+    footnote: { ...T.caption, fontSize: 10, lineHeight: 15, marginTop: space.md },
   });
 };

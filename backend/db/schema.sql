@@ -179,6 +179,67 @@ CREATE UNIQUE INDEX uq_campaign_live_per_startup
     ON campaigns (startup_id) WHERE status = 'live';
 
 -- ----------------------------------------------------------------------------
+-- University OS — the TTO's full spinout portfolio (on- and off-platform) and
+-- cross-university consortia. This is the supply-side lock-in surface: once a
+-- tech-transfer office runs its whole book here, switching cost is enormous.
+-- ----------------------------------------------------------------------------
+CREATE TABLE tto_portfolio_companies (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    university_id     UUID        NOT NULL REFERENCES universities(id) ON DELETE CASCADE,
+    name              TEXT        NOT NULL,
+    vertical          TEXT        NOT NULL,
+    stage             TEXT        NOT NULL,
+    -- FALSE = tracked-only (the company raised elsewhere; the TTO still holds
+    -- equity and manages it here). This is what makes the OS sticky.
+    on_platform       BOOLEAN     NOT NULL DEFAULT FALSE,
+    -- Optional link to the platform startup when on_platform.
+    startup_id        UUID        REFERENCES startups(id),
+    raised_to_date    NUMERIC(18,2) NOT NULL DEFAULT 0,
+    post_money        NUMERIC(18,2) NOT NULL DEFAULT 0,
+    -- Cap-table splits (percent); a CHECK keeps them summing to ~100.
+    pct_founders      NUMERIC(5,2) NOT NULL DEFAULT 0,
+    pct_university    NUMERIC(5,2) NOT NULL DEFAULT 0,
+    pct_option_pool   NUMERIC(5,2) NOT NULL DEFAULT 0,
+    pct_investors     NUMERIC(5,2) NOT NULL DEFAULT 0,
+    milestones_completed SMALLINT NOT NULL DEFAULT 0,
+    milestones_total     SMALLINT NOT NULL DEFAULT 0,
+    next_milestone    TEXT,
+    last_update       DATE,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_cap_table_sum
+        CHECK (ABS(pct_founders + pct_university + pct_option_pool + pct_investors - 100) < 0.5)
+);
+
+-- The university's aggregate equity value across its book (post-money weighted).
+CREATE VIEW university_portfolio_value AS
+SELECT university_id,
+       COUNT(*)                                                        AS spinouts,
+       COUNT(*) FILTER (WHERE on_platform)                             AS on_platform,
+       SUM(raised_to_date)                                             AS total_raised,
+       SUM(post_money)                                                 AS portfolio_value,
+       SUM(post_money * pct_university / 100.0)                        AS university_equity_value
+  FROM tto_portfolio_companies
+ GROUP BY university_id;
+
+CREATE TABLE consortia (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name              TEXT        NOT NULL,
+    thesis            TEXT,
+    vertical          TEXT        NOT NULL,
+    lead_university_id UUID       NOT NULL REFERENCES universities(id),
+    committed_capital NUMERIC(18,2) NOT NULL DEFAULT 0,
+    deals             INTEGER     NOT NULL DEFAULT 0,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE consortium_members (
+    consortium_id  UUID NOT NULL REFERENCES consortia(id) ON DELETE CASCADE,
+    university_id  UUID NOT NULL REFERENCES universities(id) ON DELETE CASCADE,
+    commitment     NUMERIC(18,2) NOT NULL DEFAULT 0,
+    PRIMARY KEY (consortium_id, university_id)
+);
+
+-- ----------------------------------------------------------------------------
 -- Milestones (the Visual Milestone Tracker / "Lab Progress Bar")
 -- ----------------------------------------------------------------------------
 CREATE TABLE milestones (
@@ -904,3 +965,5 @@ CREATE INDEX idx_dataroom_campaign     ON data_room_documents (campaign_id);
 CREATE INDEX idx_copilot_user          ON copilot_exchanges (user_id, created_at DESC);
 CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcome IS NOT NULL;
 CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);
+CREATE INDEX idx_tto_portfolio_uni     ON tto_portfolio_companies (university_id);
+CREATE INDEX idx_consortium_members_uni ON consortium_members (university_id);
