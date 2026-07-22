@@ -3,6 +3,7 @@ import { DbModule } from './db/db.module';
 import { AdminModule } from './admin/admin.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { CredentialsModule } from './credentials/credentials.module';
+import { DiligenceModule } from './diligence/diligence.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { ModelsModule } from './models/models.module';
 import { OfferingsModule } from './offerings/offerings.module';
@@ -20,6 +21,7 @@ import { UsersModule } from './users/users.module';
     CredentialsModule,
     ModelsModule,
     UniversityModule,
+    DiligenceModule,
   ],
 })
 export class AppModule {}

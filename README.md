@@ -192,6 +192,24 @@ false-precision point estimates.
   ETH), with pooled capital, shared deal flow, and member lists. Institutional
   entanglement that's hard to unwind. Backend `consortia` + `consortium_members`
   tables + `GET /universities/:id/consortia`.
+
+### Scientific-diligence moat (deal page)
+
+- **Independent replication marketplace** — beyond attestation: third-party
+  labs reproduce a milestone's result for a fee, earning a "✓✓ Verified by
+  Replication" badge (the strongest trust signal in science), with a
+  commission-replication action on open studies.
+- **Freedom-to-operate** — an auto-generated patent-landscape clearance score
+  (100 − 25·blocking − 6·adjacent) with owned/licensed/blocking/adjacent
+  breakdown and a Clear/Moderate/Contested band.
+- **Talent flow** — which star researchers are joining, weighted into a 0–100
+  signal — a leading quality indicator retail never gets.
+- Scoring is pure and unit-tested
+  ([`mobile/src/utils/diligence.ts`](mobile/src/utils/diligence.ts));
+  backend `replication_studies` / `fto_patents` / `talent_moves` tables, a
+  `startup_fto_clearance` SQL view, and `GET /diligence/startups/:id`. All
+  labs, patent assignees, and hires are fictional so no real party is placed
+  in a fabricated relationship.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual

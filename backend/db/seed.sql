@@ -118,6 +118,24 @@ INSERT INTO tax_documents (user_id, spv_id, tax_year, kind, issued_at)
 VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000af',2025,'schedule_k1', now() - interval '120 days')
 ON CONFLICT DO NOTHING;
 
+-- Scientific diligence for Helion (startup ...0b): a genuine replication, a
+-- clean FTO landscape (no blocking patents), and a star talent inflow.
+INSERT INTO replication_studies (startup_id, milestone_title, lab_name, fee, status, result, completed_date)
+VALUES
+  ('00000000-0000-0000-0000-0000000000ab','Prototype Validation (21T coil)','National High-Field Magnet Facility',42000,'replicated','Reproduced 20.7T sustained for 46h.','2026-03-18'),
+  ('00000000-0000-0000-0000-0000000000ab','Pilot Manufacturing Line','Materials Institute',55000,'available',NULL,NULL);
+
+INSERT INTO fto_patents (startup_id, title, assignee, relation, jurisdiction)
+VALUES
+  ('00000000-0000-0000-0000-0000000000ab','Rare-earth-free HTS coil winding','Helion Dynamics','owned','US'),
+  ('00000000-0000-0000-0000-0000000000ab','Substrate deposition for HTS tape','Helion Dynamics','owned','US/EP'),
+  ('00000000-0000-0000-0000-0000000000ab','Cryogenic quench-protection circuit','Meiji Superconduct Lab','adjacent','JP');
+
+INSERT INTO talent_moves (startup_id, person_name, role, from_org, pedigree, joined_date)
+VALUES
+  ('00000000-0000-0000-0000-0000000000ab','Dr. A. Novak','Head of Magnet Engineering','ex-Meiji Superconduct Lab','star','2026-05-02'),
+  ('00000000-0000-0000-0000-0000000000ab','M. Okoro','Principal Cryo Engineer','ex-national fusion program','senior','2026-04-11');
+
 -- University OS: MIT's portfolio (on- and off-platform) + a cross-university
 -- consortium it leads.
 INSERT INTO tto_portfolio_companies

@@ -11,6 +11,11 @@ import { InvestPanel } from '../components/InvestPanel';
 import { MilestoneTracker } from '../components/MilestoneTracker';
 import { ProgressBar } from '../components/ProgressBar';
 import { QASection } from '../components/QASection';
+import {
+  FTOCard,
+  ReplicationCard,
+  TalentFlowCard,
+} from '../components/ScientificDiligenceCards';
 import { ScienceMonitorCard } from '../components/ScienceMonitorCard';
 import { ScienceRiskCard } from '../components/ScienceRiskCard';
 import { ValuationDistribution } from '../components/ValuationDistribution';
@@ -130,6 +135,17 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
         {/* AI science-monitoring agent */}
         <View style={s.trackerWrap}>
           <ScienceMonitorCard startup={startup} />
+        </View>
+
+        {/* Scientific diligence: replication, FTO, talent flow */}
+        <View style={s.trackerWrap}>
+          <ReplicationCard startup={startup} />
+        </View>
+        <View style={s.trackerWrap}>
+          <FTOCard startup={startup} />
+        </View>
+        <View style={s.trackerWrap}>
+          <TalentFlowCard startup={startup} />
         </View>
 
         {/* Visual Milestone Tracker (slip-aware) */}

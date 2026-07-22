@@ -331,6 +331,58 @@ CREATE TABLE deal_answers (
 );
 
 -- ----------------------------------------------------------------------------
+-- Scientific diligence (the domain moat): independent replication, freedom-to-
+-- operate, and talent flow. All keyed to the startup.
+-- ----------------------------------------------------------------------------
+CREATE TYPE replication_status AS ENUM
+    ('available', 'commissioned', 'in_progress', 'replicated', 'inconclusive');
+CREATE TYPE patent_relation    AS ENUM ('owned', 'licensed', 'blocking', 'adjacent');
+CREATE TYPE pedigree           AS ENUM ('star', 'senior', 'notable');
+
+CREATE TABLE replication_studies (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    startup_id      UUID        NOT NULL REFERENCES startups(id) ON DELETE CASCADE,
+    milestone_id    UUID        REFERENCES milestones(id),
+    milestone_title TEXT        NOT NULL,
+    lab_name        TEXT        NOT NULL,
+    fee             NUMERIC(18,2) NOT NULL DEFAULT 0,
+    status          replication_status NOT NULL DEFAULT 'available',
+    result          TEXT,
+    completed_date  DATE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE fto_patents (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    startup_id    UUID        NOT NULL REFERENCES startups(id) ON DELETE CASCADE,
+    title         TEXT        NOT NULL,
+    assignee      TEXT        NOT NULL,
+    relation      patent_relation NOT NULL,
+    jurisdiction  TEXT        NOT NULL DEFAULT 'US'
+);
+
+-- Clearance straight from SQL: 100 − 25 per blocking − 6 per adjacent.
+CREATE VIEW startup_fto_clearance AS
+SELECT startup_id,
+       COUNT(*) FILTER (WHERE relation IN ('owned', 'licensed'))                       AS owned,
+       COUNT(*) FILTER (WHERE relation = 'blocking')                                   AS blocking,
+       COUNT(*) FILTER (WHERE relation = 'adjacent')                                   AS adjacent,
+       GREATEST(0, 100 - 25 * COUNT(*) FILTER (WHERE relation = 'blocking')
+                       - 6 * COUNT(*) FILTER (WHERE relation = 'adjacent'))            AS clearance_score
+  FROM fto_patents
+ GROUP BY startup_id;
+
+CREATE TABLE talent_moves (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    startup_id    UUID        NOT NULL REFERENCES startups(id) ON DELETE CASCADE,
+    person_name   TEXT        NOT NULL,
+    role          TEXT        NOT NULL,
+    from_org      TEXT        NOT NULL,
+    pedigree      pedigree    NOT NULL,
+    joined_date   DATE        NOT NULL
+);
+
+-- ----------------------------------------------------------------------------
 -- SPVs (one nominee entity pools all retail capital per campaign)
 -- ----------------------------------------------------------------------------
 CREATE TABLE spvs (
@@ -967,3 +1019,6 @@ CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcom
 CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);
 CREATE INDEX idx_tto_portfolio_uni     ON tto_portfolio_companies (university_id);
 CREATE INDEX idx_consortium_members_uni ON consortium_members (university_id);
+CREATE INDEX idx_replication_startup   ON replication_studies (startup_id);
+CREATE INDEX idx_fto_startup           ON fto_patents (startup_id);
+CREATE INDEX idx_talent_startup        ON talent_moves (startup_id);

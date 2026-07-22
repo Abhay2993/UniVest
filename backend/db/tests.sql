@@ -116,5 +116,18 @@ BEGIN
         AND university_id = '00000000-0000-0000-0000-0000000000aa';
     ASSERT FOUND, 'consortium lead is not recorded as a member';
 
+    ------------------------------------------------------------------
+    -- 8. Scientific diligence: FTO clearance view + replication
+    ------------------------------------------------------------------
+    -- Helion: 2 owned, 0 blocking, 1 adjacent → 100 − 0 − 6 = 94.
+    SELECT clearance_score INTO v_raised
+      FROM startup_fto_clearance WHERE startup_id = '00000000-0000-0000-0000-0000000000ab';
+    ASSERT v_raised = 94, 'FTO clearance view wrong: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- At least one milestone independently replicated.
+    PERFORM 1 FROM replication_studies
+      WHERE startup_id = '00000000-0000-0000-0000-0000000000ab' AND status = 'replicated';
+    ASSERT FOUND, 'expected a replicated study for Helion';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;
