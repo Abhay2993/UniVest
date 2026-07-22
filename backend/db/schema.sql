@@ -607,6 +607,40 @@ CREATE TABLE copilot_exchanges (
 );
 
 -- ----------------------------------------------------------------------------
+-- Model prediction ledger (the data flywheel)
+-- Every valuation/slip prediction the platform makes is logged here; when the
+-- referenced subject resolves (milestone hit/missed, exit, total loss) the
+-- outcome is stamped. The join of predicted vs realized is the proprietary
+-- deep-tech outcome dataset that calibrates the models over time.
+-- ----------------------------------------------------------------------------
+CREATE TYPE model_name AS ENUM ('valuation', 'slip');
+
+CREATE TABLE model_predictions (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    model          model_name  NOT NULL,
+    subject_kind   TEXT        NOT NULL,                        -- 'milestone' | 'spv' | 'campaign'
+    subject_id     UUID        NOT NULL,
+    -- Predicted probability of the positive event, 0..1.
+    predicted_prob NUMERIC(5,4) NOT NULL CHECK (predicted_prob BETWEEN 0 AND 1),
+    made_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- Resolution (NULL until the outcome is known).
+    outcome        SMALLINT    CHECK (outcome IN (0, 1)),
+    resolved_at    TIMESTAMPTZ
+);
+
+-- Reliability curve straight from SQL: predicted-probability deciles vs the
+-- observed frequency of the positive outcome. Feeds the calibration endpoint.
+CREATE VIEW model_reliability AS
+SELECT model,
+       width_bucket(predicted_prob, 0, 1, 10) AS bucket,
+       COUNT(*)                               AS n,
+       AVG(predicted_prob)                    AS mean_predicted,
+       AVG(outcome::numeric)                  AS observed_freq
+  FROM model_predictions
+ WHERE outcome IS NOT NULL
+ GROUP BY model, width_bucket(predicted_prob, 0, 1, 10);
+
+-- ----------------------------------------------------------------------------
 -- University leaderboard (public marketing surface + SaaS upsell)
 -- ----------------------------------------------------------------------------
 CREATE VIEW university_leaderboard AS
@@ -868,3 +902,5 @@ CREATE INDEX idx_valuations_spv        ON spv_valuations (spv_id, as_of DESC);
 CREATE INDEX idx_tax_docs_user         ON tax_documents (user_id, tax_year DESC);
 CREATE INDEX idx_dataroom_campaign     ON data_room_documents (campaign_id);
 CREATE INDEX idx_copilot_user          ON copilot_exchanges (user_id, created_at DESC);
+CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcome IS NOT NULL;
+CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);

@@ -80,5 +80,14 @@ BEGIN
     PERFORM 1 FROM attestation_credentials WHERE anchor_chain = 'demo-ledger';
     ASSERT FOUND, 'attestation_credentials default anchor_chain missing';
 
+    ------------------------------------------------------------------
+    -- 6. Prediction ledger + reliability view (the data flywheel)
+    ------------------------------------------------------------------
+    SELECT observed_freq INTO v_price
+      FROM model_reliability
+     WHERE model = 'slip' AND bucket = 9;  -- the 0.80 predictions
+    -- 16 of 20 outcomes are 1 → observed 0.8 for the high-confidence band.
+    ASSERT v_price = 0.80, 'reliability view mis-computed observed_freq: ' || COALESCE(v_price::text, 'NULL');
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

@@ -154,6 +154,25 @@ false-precision point estimates.
   with any field fails verification (proven by a CI crypto test and a live
   end-to-end tamper test). Demo keys are deterministic; production keys live
   in the officer's secure enclave and the VC hash anchors to a public ledger.
+
+### Data flywheel — the compounding moat
+
+- **Outcome-calibrated models** ("Our Models, Scored", from Discovery) — every
+  valuation/slip prediction is logged and scored against the realized outcome.
+  The transparency page plots the reliability curve against the
+  perfect-calibration diagonal with Brier score, Expected Calibration Error,
+  and sample size. The models are honestly modeled as mildly optimistic, so
+  the curve sits *near* the diagonal, not on it. Pure math in
+  [`mobile/src/utils/calibration.ts`](mobile/src/utils/calibration.ts)
+  (unit-tested); backend `model_predictions` ledger + `model_reliability` SQL
+  view + `GET /models/:model/calibration` compute the same metrics live. This
+  is the moat that compounds: a cold-start entrant has no deep-tech outcome
+  data and cannot buy this history.
+- **UniVest Deep-Tech Index** ("Deep-Tech Index", from Discovery) — an "S&P
+  for university spinouts": an equal-weight composite plus per-vertical
+  sub-indices (base 100 at inception) computed from aggregate NAV progress,
+  with total and annualized returns. If the category cites it as the reference
+  rate, that's a brand + data moat.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual

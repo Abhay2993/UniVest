@@ -118,6 +118,18 @@ INSERT INTO tax_documents (user_id, spv_id, tax_year, kind, issued_at)
 VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000af',2025,'schedule_k1', now() - interval '120 days')
 ON CONFLICT DO NOTHING;
 
+-- Prediction ledger: resolved slip predictions across two probability bands,
+-- so model_reliability and the calibration endpoint have data to compute over.
+INSERT INTO model_predictions (model, subject_kind, subject_id, predicted_prob, outcome, resolved_at)
+SELECT 'slip'::model_name, 'milestone', gen_random_uuid(), 0.20, (i % 5 = 0)::int, now()
+  FROM generate_series(1, 20) i               -- ~20% predicted → ~20% observed
+UNION ALL
+SELECT 'slip'::model_name, 'milestone', gen_random_uuid(), 0.80, (i % 5 <> 0)::int, now()
+  FROM generate_series(1, 20) i               -- ~80% predicted → ~80% observed
+UNION ALL
+SELECT 'valuation'::model_name, 'spv', gen_random_uuid(), 0.55, (i % 2 = 0)::int, now()
+  FROM generate_series(1, 16) i;
+
 -- A raise awaiting platform review (admin console approval queue)
 INSERT INTO campaigns (id, startup_id, status, template, university_equity_pct, target_amount,
                        raised_amount, min_investment, max_investment, price_per_unit, closes_at)

@@ -18,9 +18,11 @@ import { ResearchMap } from '../components/ResearchMap';
 import { StartupCard } from '../components/StartupCard';
 import { UniversityLeaderboard } from '../components/UniversityLeaderboard';
 import { CompareScreen } from './CompareScreen';
+import { DeepTechIndexScreen } from './DeepTechIndexScreen';
 import { DirectoryScreen } from './DirectoryScreen';
 import { InboxScreen } from './InboxScreen';
 import { KnowledgeGraphScreen } from './KnowledgeGraphScreen';
+import { ModelCalibrationScreen } from './ModelCalibrationScreen';
 
 interface Props {
   onSelectStartup: (startup: Startup) => void;
@@ -43,9 +45,9 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
   const { watchedIds, isFollowing } = useWatchlist();
   const { unreadCount } = useInbox();
 
-  const [view, setView] = useState<'list' | 'map' | 'inbox' | 'compare' | 'directory' | 'graph'>(
-    'list',
-  );
+  const [view, setView] = useState<
+    'list' | 'map' | 'inbox' | 'compare' | 'directory' | 'graph' | 'index' | 'calibration'
+  >('list');
   const [vertical, setVertical] = useState<Vertical | 'All'>('All');
   const [universityId, setUniversityId] = useState<string | null>(null);
   const [watchlistOnly, setWatchlistOnly] = useState(false);
@@ -94,6 +96,14 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
 
   if (view === 'graph') {
     return <KnowledgeGraphScreen onClose={() => setView('list')} />;
+  }
+
+  if (view === 'index') {
+    return <DeepTechIndexScreen onClose={() => setView('list')} />;
+  }
+
+  if (view === 'calibration') {
+    return <ModelCalibrationScreen onClose={() => setView('list')} />;
   }
 
   return (
@@ -218,6 +228,40 @@ export function DiscoveryFeedScreen({ onSelectStartup }: Props) {
                 <Text style={s.directoryHint}>
                   Walk startups → founders → papers → topics → who else is working on the same
                   science
+                </Text>
+              </View>
+              <Text style={s.directoryArrow}>→</Text>
+            </Pressable>
+
+            <Pressable
+              style={s.directoryCard}
+              onPress={() => setView('index')}
+              accessibilityRole="button"
+              accessibilityLabel="Open the deep-tech index"
+            >
+              <View style={s.directoryLeft}>
+                <Text style={s.directoryOverline}>BENCHMARK</Text>
+                <Text style={s.directoryTitle}>Deep-Tech Index</Text>
+                <Text style={s.directoryHint}>
+                  The "S&P for university spinouts" — composite and per-vertical benchmarks, base
+                  100
+                </Text>
+              </View>
+              <Text style={s.directoryArrow}>→</Text>
+            </Pressable>
+
+            <Pressable
+              style={s.directoryCard}
+              onPress={() => setView('calibration')}
+              accessibilityRole="button"
+              accessibilityLabel="Open the model calibration transparency page"
+            >
+              <View style={s.directoryLeft}>
+                <Text style={s.directoryOverline}>TRANSPARENCY</Text>
+                <Text style={s.directoryTitle}>Our Models, Scored</Text>
+                <Text style={s.directoryHint}>
+                  Every prediction checked against reality — Brier score, calibration, and why it's
+                  a moat
                 </Text>
               </View>
               <Text style={s.directoryArrow}>→</Text>

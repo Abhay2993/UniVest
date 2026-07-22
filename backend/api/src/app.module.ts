@@ -4,6 +4,7 @@ import { AdminModule } from './admin/admin.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { InvestmentsModule } from './investments/investments.module';
+import { ModelsModule } from './models/models.module';
 import { OfferingsModule } from './offerings/offerings.module';
 import { UsersModule } from './users/users.module';
 
@@ -16,6 +17,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     AdminModule,
     CredentialsModule,
+    ModelsModule,
   ],
 })
 export class AppModule {}
