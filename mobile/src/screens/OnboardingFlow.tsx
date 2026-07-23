@@ -12,7 +12,8 @@ import {
 import * as Haptics from 'expo-haptics';
 import { INCOME_BANDS, NET_WORTH_BANDS, PASS_SCORE, QUIZ_QUESTIONS } from '../data/quiz';
 import { useInvestorProfile } from '../state/InvestorProfileContext';
-import { EU_COUNTRIES, useSettings } from '../state/SettingsContext';
+import { useSettings } from '../state/SettingsContext';
+import { regimeForCountry, resolveRegime } from '../utils/compliance';
 import { font, Palette, radius, space, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { computeInvestmentLimit } from '../utils/finance';
@@ -25,7 +26,7 @@ const QUIET_EASE = LayoutAnimation.create(
   LayoutAnimation.Properties.opacity,
 );
 
-const COUNTRIES = ['USA', 'GBR', 'CHE', 'NLD', 'KOR', 'DEU'] as const;
+const COUNTRIES = ['USA', 'GBR', 'DEU', 'CAN', 'SGP', 'AUS'] as const;
 
 type Step = 'welcome' | 'identity' | 'verifying' | 'quiz' | 'financials' | 'result';
 
@@ -110,7 +111,7 @@ export function OnboardingFlow() {
     if (annualLimit === null) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     // Residence drives the regulatory regime (and default currency).
-    setJurisdiction(EU_COUNTRIES.includes(country) ? 'EU' : 'US');
+    setJurisdiction(regimeForCountry(country));
     completeOnboarding({
       fullName: fullName.trim() || 'UniVest Investor',
       country,
@@ -302,7 +303,7 @@ export function OnboardingFlow() {
             <ResultRow label="Residence" value={country} />
             <ResultRow
               label="Regime"
-              value={EU_COUNTRIES.includes(country) ? 'ECSPR (EU)' : 'Reg CF (US)'}
+              value={`${resolveRegime(regimeForCountry(country)).framework} (${resolveRegime(regimeForCountry(country)).regulator})`}
             />
             <Text style={s.footnote}>
               Your limit refreshes on a rolling 12-month basis and gates every commitment,

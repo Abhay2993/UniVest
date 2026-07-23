@@ -53,11 +53,16 @@ export interface SignedCredential extends Record<string, unknown> {
   };
 }
 
-/** Attach an Ed25519Signature2020 proof to a credential payload. */
+/**
+ * Attach an Ed25519Signature2020 proof to a credential payload. `didKind`
+ * selects the DID method segment — 'attestor' for milestone attestations,
+ * 'issuer' for platform-issued credentials like the investor passport.
+ */
 export function signCredential(
   payload: Record<string, unknown>,
   keyId: string,
   privateKey: crypto.KeyObject,
+  didKind: 'attestor' | 'issuer' = 'attestor',
 ): { credential: SignedCredential; vcHash: Buffer } {
   const canonical = Buffer.from(stableStringify(payload));
   const vcHash = crypto.createHash('sha256').update(canonical).digest();
@@ -67,7 +72,7 @@ export function signCredential(
     proof: {
       type: 'Ed25519Signature2020',
       created: new Date().toISOString(),
-      verificationMethod: `did:univest:attestor:${keyId}#key-1`,
+      verificationMethod: `did:univest:${didKind}:${keyId}#key-1`,
       proofPurpose: 'assertionMethod',
       proofValue: signature.toString('base64url'),
     },
@@ -96,10 +101,10 @@ export function verifyCredential(
   }
 }
 
-/** Extract the attestor key_id from a credential's verificationMethod. */
+/** Extract the signer key_id from a credential's verificationMethod (attestor or issuer). */
 export function keyIdFromCredential(credential: Record<string, any>): string | null {
   const vm = credential?.proof?.verificationMethod;
   if (typeof vm !== 'string') return null;
-  const m = /^did:univest:attestor:(.+?)(#|$)/.exec(vm);
+  const m = /^did:univest:(?:attestor|issuer):(.+?)(#|$)/.exec(vm);
   return m ? m[1] : null;
 }

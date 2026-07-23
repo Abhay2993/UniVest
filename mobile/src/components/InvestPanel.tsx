@@ -12,6 +12,7 @@ import {
 import { useEducation } from '../state/EducationContext';
 import { useInvestorProfile } from '../state/InvestorProfileContext';
 import { useSettings } from '../state/SettingsContext';
+import { resolveRegime } from '../utils/compliance';
 import { formatMoney } from '../utils/format';
 
 const QUIET_EASE = LayoutAnimation.create(
@@ -44,13 +45,11 @@ export function InvestPanel({ startup }: { startup: Startup }) {
   const verified = profile.kycStatus === 'approved';
   const { effectiveLimit } = useEducation();
   const { jurisdiction } = useSettings();
+  const regime = resolveRegime(jurisdiction);
   // Academy progress gates the usable share of the statutory limit.
   const annualLimit = effectiveLimit(profile.annualLimit ?? ANNUAL_INVESTMENT_LIMIT);
 
-  const cancellationNote =
-    jurisdiction === 'EU'
-      ? '1.5% SPV admin fee · 4-day reflection period applies (ECSPR)'
-      : '1.5% SPV admin fee · cancel any time until 48h before close (Reg CF)';
+  const cancellationNote = `1.5% SPV admin fee · ${regime.coolingOff.label} (${regime.framework})`;
 
   const presets = [startup.minInvestment, 500, 1_000, 2_500, 5_000]
     .filter((v, i, arr) => v >= startup.minInvestment && v <= MAX_TICKET && arr.indexOf(v) === i)
@@ -92,7 +91,8 @@ export function InvestPanel({ startup }: { startup: Startup }) {
         amount={commitment.amount}
         cancellableUntil={commitment.cancellableUntil}
         onCancel={onCancel}
-        jurisdiction={jurisdiction}
+        coolingOffLabel={regime.coolingOff.label}
+        framework={regime.framework}
       />
     );
   }
@@ -102,15 +102,15 @@ export function InvestPanel({ startup }: { startup: Startup }) {
     return (
       <View style={s.bar}>
         <Text style={s.warnTitle}>
-          {jurisdiction === 'EU'
-            ? 'Express consent required (ECSPR)'
+          {regime.expressConsent
+            ? `Express consent required (${regime.framework})`
             : 'A measured note on concentration'}
         </Text>
         <Text style={s.warnBody}>
           This commitment would place {pct}% of your {formatMoney(annualLimit)} annual
           allowance in a single {startup.vertical} position.{' '}
-          {jurisdiction === 'EU'
-            ? 'Under ECSPR, non-sophisticated investors must expressly confirm they can bear the loss of this amount before proceeding.'
+          {regime.expressConsent
+            ? `Under ${regime.framework}, ${regime.regulator} requires you to expressly confirm you can bear the loss of this amount before proceeding.`
             : 'Deep-tech timelines reward diversification across several offerings. You may proceed — consider whether this weighting reflects your intent.'}
         </Text>
         <View style={s.row}>
@@ -246,12 +246,14 @@ function CommitmentCard({
   amount,
   cancellableUntil,
   onCancel,
-  jurisdiction,
+  coolingOffLabel,
+  framework,
 }: {
   amount: number;
   cancellableUntil: string;
   onCancel: () => void;
-  jurisdiction: 'US' | 'EU';
+  coolingOffLabel: string;
+  framework: string;
 }) {
   const s = useThemedStyles(makeStyles);
   const remaining = useCountdown(cancellableUntil);
@@ -281,9 +283,7 @@ function CommitmentCard({
         </Pressable>
       )}
       <Text style={s.footnote}>
-        {jurisdiction === 'EU'
-          ? 'Under ECSPR you may withdraw within the 4-day reflection period. Funds stay in escrow until then.'
-          : 'Under Reg CF you may cancel until 48 hours before the round closes. Funds stay in escrow until then.'}
+        Under {framework} you may {coolingOffLabel}. Funds stay in escrow until then.
       </Text>
     </View>
   );

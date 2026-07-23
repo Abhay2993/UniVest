@@ -210,6 +210,35 @@ false-precision point estimates.
   `startup_fto_clearance` SQL view, and `GET /diligence/startups/:id`. All
   labs, patent assignees, and hires are fictional so no real party is placed
   in a fabricated relationship.
+
+### Identity & regulatory moat
+
+- **Portable investor passport** (Tools → Investor Passport) — a verified
+  investor's KYC + accreditation + suitability + jurisdiction, minted into a
+  reusable **W3C Verifiable Credential** signed with the platform's Ed25519
+  **issuer** key. Because it verifies offline against the public issuer key,
+  *any* platform — not just UniVest — can accept a UniVest identity without
+  re-running KYC or trusting our API; revoking a passport invalidates it
+  everywhere at once. Real issuance/verification runs server-side
+  ([`backend/api/src/passport`](backend/api/src/passport)): `POST /passport/issue`
+  supersedes any prior active passport (one-active-passport invariant),
+  `GET /passport/me` returns the credential, and the **public** `POST
+  /passport/verify` runs the exact Ed25519 check a third party would — tamper
+  the annual limit and verification fails with `signature does not match the
+  UniVest issuer key`. The mobile passport card renders the claims, the
+  jurisdiction's annual limit in local currency, and a live verify action.
+- **Multi-jurisdiction compliance engine** — the regime registry
+  ([`mobile/src/utils/compliance.ts`](mobile/src/utils/compliance.ts)) now spans
+  **six regimes** — US (SEC · Reg CF), EU (ECSPR), UK (FCA · Restricted
+  Investor), Canada (CSA · NI 45-110), Singapore (MAS), and Australia (ASIC ·
+  CSF). Each regime declares its regulator, framework, currency, cooling-off
+  rule (before-close vs. reflection window), express-consent requirement, and an
+  annual-limit function; onboarding residence or the Region setting selects one,
+  and it drives the cooling-off stamp, the invest-panel disclosure, and the
+  passport. Every added regime is a compliance moat a competitor must rebuild
+  from scratch. Pure and unit-tested (10 tests in
+  [`compliance.test.ts`](mobile/src/utils/__tests__/compliance.test.ts)); the
+  `investor_passports` table carries the one-active-passport DB assertion.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual
@@ -240,10 +269,11 @@ false-precision point estimates.
 - **Web build (Vercel-ready)** — `react-native-web` target with a
   `ResearchMap.web.tsx` fallback for the native-only map; `vercel.json`
   builds `mobile/` and serves `mobile/dist` zero-config.
-- **Multi-currency + jurisdiction regimes** — USD/EUR display everywhere via
-  locale-aware formatters; the Region setting (or onboarding residence)
-  selects Reg CF (48h-before-close cancellation) or ECSPR (4-day reflection
-  period + express-consent nudge).
+- **Multi-currency + jurisdiction regimes** — USD/EUR/GBP/CAD/SGD/AUD display
+  everywhere via locale-aware formatters; the Region setting (or onboarding
+  residence) selects one of six regimes (see *Identity & regulatory moat*),
+  each with its own cooling-off rule, annual limit, express-consent requirement,
+  and currency.
 - **Web companion (SEO)** — `web/build.mjs` generates static, crawlable deal
   pages and a leaderboard at `/deals/*` from the app's data, served from the
   same Vercel deploy as the SPA.

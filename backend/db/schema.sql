@@ -71,6 +71,21 @@ CREATE TABLE users (
 );
 
 -- ----------------------------------------------------------------------------
+-- Portable investor passport — the investor's verified identity (KYC +
+-- accreditation + suitability + jurisdiction) issued as a W3C Verifiable
+-- Credential signed with the platform's Ed25519 issuer key. Reusable and
+-- independently verifiable by other platforms → the identity-layer moat.
+-- ----------------------------------------------------------------------------
+CREATE TABLE investor_passports (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    credential    JSONB       NOT NULL,                        -- signed W3C VC (incl. proof)
+    vc_hash       BYTEA       NOT NULL,                        -- SHA-256 of the canonical payload
+    issued_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    revoked_at    TIMESTAMPTZ                                  -- revocation invalidates the passport
+);
+
+-- ----------------------------------------------------------------------------
 -- Universities & TTO membership
 -- ----------------------------------------------------------------------------
 CREATE TABLE universities (
@@ -1019,6 +1034,7 @@ CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcom
 CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);
 CREATE INDEX idx_tto_portfolio_uni     ON tto_portfolio_companies (university_id);
 CREATE INDEX idx_consortium_members_uni ON consortium_members (university_id);
+CREATE INDEX idx_passports_user        ON investor_passports (user_id, issued_at DESC);
 CREATE INDEX idx_replication_startup   ON replication_studies (startup_id);
 CREATE INDEX idx_fto_startup           ON fto_patents (startup_id);
 CREATE INDEX idx_talent_startup        ON talent_moves (startup_id);

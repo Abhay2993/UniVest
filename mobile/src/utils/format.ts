@@ -4,7 +4,7 @@
  * every money display — switch to EUR and the whole app re-renders in euros
  * with German number formatting.
  */
-export type CurrencyCode = 'USD' | 'EUR';
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'SGD' | 'AUD';
 
 export interface CurrencyConfig {
   code: CurrencyCode;
@@ -17,6 +17,10 @@ export interface CurrencyConfig {
 export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
   USD: { code: 'USD', locale: 'en-US', rateFromUSD: 1, symbol: '$' },
   EUR: { code: 'EUR', locale: 'de-DE', rateFromUSD: 0.92, symbol: '€' },
+  GBP: { code: 'GBP', locale: 'en-GB', rateFromUSD: 0.79, symbol: '£' },
+  CAD: { code: 'CAD', locale: 'en-CA', rateFromUSD: 1.36, symbol: 'C$' },
+  SGD: { code: 'SGD', locale: 'en-SG', rateFromUSD: 1.34, symbol: 'S$' },
+  AUD: { code: 'AUD', locale: 'en-AU', rateFromUSD: 1.52, symbol: 'A$' },
 };
 
 let active: CurrencyConfig = CURRENCIES.USD;

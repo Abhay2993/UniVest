@@ -3,12 +3,14 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STARTUPS, SYNDICATES, VERTICALS } from '../data/mock';
 import { useSettings } from '../state/SettingsContext';
+import { JURISDICTION_IDS, REGIMES, resolveRegime } from '../utils/compliance';
 import { Vertical } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatMoney, formatMoneyCompact } from '../utils/format';
 import { AcademyScreen } from './AcademyScreen';
 import { OpsConsoleScreen } from './OpsConsoleScreen';
+import { PassportScreen } from './PassportScreen';
 import { TTOPortalScreen } from './TTOPortalScreen';
 
 const AUTOINVEST_KEY = 'univest.autoinvest.v1';
@@ -32,11 +34,12 @@ const DEFAULT_PREFS: AutoInvestPrefs = {
  *  and the University Portal for TTO officers. */
 export function ToolsScreen() {
   const s = useThemedStyles(makeStyles);
-  const [overlay, setOverlay] = useState<'none' | 'portal' | 'academy' | 'ops'>('none');
+  const [overlay, setOverlay] = useState<'none' | 'portal' | 'academy' | 'ops' | 'passport'>('none');
 
   if (overlay === 'portal') return <TTOPortalScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'academy') return <AcademyScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'ops') return <OpsConsoleScreen onClose={() => setOverlay('none')} />;
+  if (overlay === 'passport') return <PassportScreen onClose={() => setOverlay('none')} />;
 
   return (
     <ScrollView style={s.screen} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
@@ -47,6 +50,23 @@ export function ToolsScreen() {
           Recurring allocation for investors · deal modeling for founders and TTOs
         </Text>
       </View>
+
+      <Pressable
+        style={s.portalCard}
+        onPress={() => setOverlay('passport')}
+        accessibilityRole="button"
+        accessibilityLabel="Open your portable investor passport"
+      >
+        <View style={s.portalLeft}>
+          <Text style={s.portalOverline}>YOUR IDENTITY</Text>
+          <Text style={s.portalTitle}>Investor Passport</Text>
+          <Text style={s.portalHint}>
+            Your verified KYC + accreditation + suitability as a portable, cryptographically
+            verifiable credential — reusable across platforms
+          </Text>
+        </View>
+        <Text style={s.portalArrow}>→</Text>
+      </Pressable>
 
       <RegionCard />
 
@@ -111,50 +131,51 @@ export function ToolsScreen() {
 // ----------------------------------------------------------------------------
 function RegionCard() {
   const s = useThemedStyles(makeStyles);
-  const { jurisdiction, currency, setJurisdiction, setCurrency } = useSettings();
+  const { jurisdiction, setJurisdiction } = useSettings();
+  const regime = resolveRegime(jurisdiction);
 
   return (
     <View style={s.card}>
-      <Text style={s.overline}>Region & Currency</Text>
+      <Text style={s.overline}>Compliance Engine · Region</Text>
       <Text style={s.hint}>
-        The jurisdiction sets your regulatory regime — Reg CF (48h-before-close cancellation)
-        or ECSPR (4-day reflection period) — and the display currency.
+        Six regulatory regimes — each sets your cooling-off rule, annual limit, express-consent
+        requirement, and currency. Adding a regime is a compliance moat competitors must rebuild.
       </Text>
       <Text style={s.fieldLabel}>JURISDICTION</Text>
       <View style={s.presetRow}>
-        {(
-          [
-            ['US', 'United States · Reg CF'],
-            ['EU', 'European Union · ECSPR'],
-          ] as const
-        ).map(([key, label]) => (
-          <Pressable
-            key={key}
-            style={[s.chip, jurisdiction === key && s.chipActive]}
-            onPress={() => setJurisdiction(key)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: jurisdiction === key }}
-          >
-            <Text style={[s.chipText, jurisdiction === key && s.chipTextActive]}>{label}</Text>
-          </Pressable>
-        ))}
+        {JURISDICTION_IDS.map((id) => {
+          const r = REGIMES[id];
+          return (
+            <Pressable
+              key={id}
+              style={[s.chip, jurisdiction === id && s.chipActive]}
+              onPress={() => setJurisdiction(id)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: jurisdiction === id }}
+            >
+              <Text style={[s.chipText, jurisdiction === id && s.chipTextActive]}>
+                {r.country} · {r.framework}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
-      <Text style={s.fieldLabel}>CURRENCY</Text>
-      <View style={s.presetRow}>
-        {(['USD', 'EUR'] as const).map((code) => (
-          <Pressable
-            key={code}
-            style={[s.chip, currency === code && s.chipActive]}
-            onPress={() => setCurrency(code)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: currency === code }}
-          >
-            <Text style={[s.chipText, currency === code && s.chipTextActive]}>
-              {code === 'USD' ? '$ USD' : '€ EUR'}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={s.regimeSummary}>
+        <RegimeRow label="Regulator" value={`${regime.regulator} · ${regime.framework}`} s={s} />
+        <RegimeRow label="Cooling-off" value={regime.coolingOff.label} s={s} />
+        <RegimeRow label="Currency" value={regime.currency} s={s} />
+        <RegimeRow label="Express consent" value={regime.expressConsent ? 'Required above threshold' : 'Not required'} s={s} />
       </View>
+      <Text style={s.regimeDisclosure}>{regime.disclosure}</Text>
+    </View>
+  );
+}
+
+function RegimeRow({ label, value, s }: { label: string; value: string; s: ReturnType<typeof makeStyles> }) {
+  return (
+    <View style={s.regimeRow}>
+      <Text style={s.regimeLabel}>{label}</Text>
+      <Text style={s.regimeValue}>{value}</Text>
     </View>
   );
 }
@@ -549,6 +570,17 @@ const makeStyles = (c: Palette) => {
     legendValue: { ...T.financial, fontSize: 13, fontWeight: '600' },
 
     footnote: { ...T.caption, fontSize: 10, marginTop: space.md },
+
+    regimeSummary: {
+      marginTop: space.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.hairline,
+      paddingTop: space.sm,
+    },
+    regimeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingVertical: 4 },
+    regimeLabel: { ...T.caption, fontSize: 11, color: c.inkMuted },
+    regimeValue: { ...T.body, fontSize: 12, fontWeight: '600' },
+    regimeDisclosure: { ...T.caption, fontSize: 10, lineHeight: 15, marginTop: space.sm, fontStyle: 'italic' },
 
     portalCard: {
       flexDirection: 'row',

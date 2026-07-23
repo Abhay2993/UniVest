@@ -129,5 +129,19 @@ BEGIN
       WHERE startup_id = '00000000-0000-0000-0000-0000000000ab' AND status = 'replicated';
     ASSERT FOUND, 'expected a replicated study for Helion';
 
+    ------------------------------------------------------------------
+    -- 9. Investor passport: table + one-active-passport supersession
+    ------------------------------------------------------------------
+    INSERT INTO investor_passports (user_id, credential, vc_hash)
+    VALUES ('00000000-0000-0000-0000-000000000001', '{"type":["InvestorPassportCredential"]}'::jsonb, decode('aa','hex'));
+    -- Re-issue: supersede the prior active passport (mirror the service logic).
+    UPDATE investor_passports SET revoked_at = now()
+     WHERE user_id = '00000000-0000-0000-0000-000000000001' AND revoked_at IS NULL;
+    INSERT INTO investor_passports (user_id, credential, vc_hash)
+    VALUES ('00000000-0000-0000-0000-000000000001', '{"type":["InvestorPassportCredential"],"v":2}'::jsonb, decode('bb','hex'));
+    SELECT COUNT(*) INTO v_raised FROM investor_passports
+     WHERE user_id = '00000000-0000-0000-0000-000000000001' AND revoked_at IS NULL;
+    ASSERT v_raised = 1, 'expected exactly one active passport, got ' || v_raised;
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

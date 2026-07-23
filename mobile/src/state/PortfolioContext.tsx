@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Startup } from '../types';
+import { coolingOffCancellableUntil } from '../utils/compliance';
 import { useSettings } from './SettingsContext';
 
 const STORAGE_KEY = 'univest.portfolio.v1';
@@ -76,12 +77,9 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const commit = useCallback((startup: Startup, amount: number, signerName?: string) => {
     const now = Date.now();
     const closesAt = now + startup.daysLeft * 86_400_000;
-    // US/Reg CF: window closes 48h before the campaign close.
-    // EU/ECSPR: 4-day reflection from commitment (never past the close).
-    const cancellableUntil =
-      jurisdiction === 'EU'
-        ? Math.min(now + ECSPR_REFLECTION_DAYS * 86_400_000, closesAt)
-        : closesAt - COOLING_OFF_HOURS * 3_600_000;
+    // Cooling-off resolved by the active jurisdiction's regime (compliance
+    // engine): before-close windows vs reflection periods, per regulator.
+    const cancellableUntil = coolingOffCancellableUntil(jurisdiction, now, closesAt);
     const entry: Commitment = {
       startupId: startup.id,
       amount,
