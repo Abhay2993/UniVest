@@ -190,3 +190,19 @@ VALUES
   ('00000000-0000-0000-0000-0000000000b0','00000000-0000-0000-0000-000000000002','sell',120,11.50, now() - interval '4 days'),
   ('00000000-0000-0000-0000-0000000000b0','00000000-0000-0000-0000-000000000002','sell',180,12.25, now() - interval '3 days'),
   ('00000000-0000-0000-0000-0000000000b0','00000000-0000-0000-0000-000000000002','sell',200,12.75, now() - interval '2 days');
+
+-- ----------------------------------------------------------------------------
+-- Embedded infrastructure: a demo API partner + one SPV formed via the API.
+-- Demo secret key is 'sk_test_univest_demo' (only its SHA-256 digest is stored,
+-- exactly as production would). The mobile Platform screen and the live API
+-- test authenticate with this key.
+-- ----------------------------------------------------------------------------
+INSERT INTO platform_partners (id, name, kind, api_key_hash, key_prefix, live_mode)
+VALUES ('00000000-0000-0000-0000-0000000000f1','Accelerate Labs','accelerator',
+        digest('sk_test_univest_demo','sha256'),'sk_test_univ', FALSE)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO platform_spvs (id, partner_id, external_ref, company_name, vertical, target_amount, currency, status)
+VALUES ('00000000-0000-0000-0000-0000000000f2','00000000-0000-0000-0000-0000000000f1',
+        'cohort-24-photonics','Lumen Photonics','Photonics',1500000,'USD','forming')
+ON CONFLICT DO NOTHING;

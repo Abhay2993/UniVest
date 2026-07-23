@@ -36,6 +36,7 @@ CREATE TYPE mandate_mode       AS ENUM ('per_deal', 'monthly_budget');
 CREATE TYPE auction_status     AS ENUM ('scheduled', 'open', 'cleared', 'settled', 'cancelled');
 CREATE TYPE order_side         AS ENUM ('buy', 'sell');
 CREATE TYPE order_status       AS ENUM ('open', 'filled', 'partially_filled', 'unfilled', 'cancelled');
+CREATE TYPE partner_kind        AS ENUM ('accelerator', 'platform', 'university', 'syndicate');
 
 -- ----------------------------------------------------------------------------
 -- Users (retail investors, institutional leads, TTO officers, admins)
@@ -426,6 +427,45 @@ CREATE TABLE spv_holdings (
     updated_at    TIMESTAMPTZ   NOT NULL DEFAULT now(),
     PRIMARY KEY (spv_id, user_id)
 );
+
+-- ----------------------------------------------------------------------------
+-- Embedded infrastructure — "Stripe-for-spinout-equity". Partner accounts
+-- (accelerators, other platforms, universities) consume UniVest's SPV
+-- formation, attestation verification, and secondary rails over an API keyed
+-- credential. The picks-and-shovels distribution layer beneath the category.
+--
+-- The secret key is NEVER stored: only its SHA-256 digest. The API guard
+-- hashes the presented key and looks the partner up by digest. Partner data is
+-- isolated by partner_id in every query (partners are not `users`, so the
+-- per-user RLS policies do not apply to them).
+-- ----------------------------------------------------------------------------
+CREATE TABLE platform_partners (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name          TEXT         NOT NULL,
+    kind          partner_kind NOT NULL,
+    api_key_hash  BYTEA        NOT NULL UNIQUE,      -- SHA-256(secret key)
+    key_prefix    TEXT         NOT NULL,             -- e.g. 'sk_test_1a2b' for dashboard display
+    live_mode     BOOLEAN      NOT NULL DEFAULT FALSE,
+    active        BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+
+-- SPVs formed by a partner through the embedded API (distinct from first-party
+-- campaigns/spvs). A partner can only ever see its own SPVs.
+CREATE TABLE platform_spvs (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    partner_id    UUID          NOT NULL REFERENCES platform_partners(id),
+    external_ref  TEXT,                              -- the partner's own id, for reconciliation
+    company_name  TEXT          NOT NULL,
+    vertical      TEXT,
+    target_amount NUMERIC(18,2) NOT NULL CHECK (target_amount > 0),
+    currency      TEXT          NOT NULL DEFAULT 'USD',
+    carry_pct     NUMERIC(5,2)  NOT NULL DEFAULT 15.00,
+    status        spv_status    NOT NULL DEFAULT 'forming',
+    created_at    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    UNIQUE (partner_id, external_ref)
+);
+CREATE INDEX idx_platform_spvs_partner ON platform_spvs(partner_id);
 
 -- ----------------------------------------------------------------------------
 -- Investments (primary market subscriptions)

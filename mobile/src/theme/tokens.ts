@@ -110,6 +110,8 @@ export const font = {
   serif: 'PlayfairDisplay_500Medium',
   /** Precise geometric sans for body & financials (SF Pro / Roboto). */
   sans: Platform.select({ ios: 'System', android: 'Roboto', default: 'System' })!,
+  /** Monospace for API keys, endpoints, and code samples. */
+  mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' })!,
 } as const;
 
 /** Apply to every financial figure so columns of digits align. */

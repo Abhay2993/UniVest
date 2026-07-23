@@ -239,6 +239,36 @@ false-precision point estimates.
   from scratch. Pure and unit-tested (10 tests in
   [`compliance.test.ts`](mobile/src/utils/__tests__/compliance.test.ts)); the
   `investor_passports` table carries the one-active-passport DB assertion.
+
+### Distribution moat — become the layer, not just the app
+
+- **Embedded infrastructure — "Stripe-for-spinout-equity"** (Tools → Embedded
+  Infrastructure) — the SPV, attestation, and secondary rails offered to
+  accelerators, other platforms, and universities as an API-keyed service, so
+  UniVest becomes the picks-and-shovels layer beneath the whole category.
+  Real server-side module ([`backend/api/src/platform`](backend/api/src/platform)):
+  a `PlatformKeyGuard` authenticates partners by **SHA-256 digest** of the
+  presented `Bearer sk_…` key (the secret is never stored), then three rails —
+  `POST /platform/v1/spvs` (form an SPV; **idempotent** on `externalRef`),
+  `POST /platform/v1/attestations/verify` (run the real Ed25519 check against
+  the on-file attestor key — attestation-verification-as-a-service), and
+  `GET /platform/v1/secondary/:id/book` (best bid/ask + full depth from the
+  auction book). Every partner query is partner-scoped, so a partner only ever
+  sees its own SPVs. Backed by `platform_partners` / `platform_spvs` tables and
+  four DB assertions (key-by-digest lookup, partner scoping, `external_ref`
+  uniqueness, positive-target CHECK). The mobile screen is a developer
+  dashboard: reveal-able test key, the three rails with endpoints, and a
+  copy-ready `curl`.
+- **Public knowledge graph — "Crunchbase-for-university-science"** — the web
+  companion ([`web/build.mjs`](web/build.mjs)) is now an authoritative public
+  **directory** of deep-tech spinouts, generated from the app's own knowledge
+  graph. It emits a cross-linked directory hub, one **founder page** per
+  researcher, one **research-topic page** per topic (the "who else is working on
+  rare-earth-free HTS magnets?" discovery + SEO surface — a shared topic links
+  spinouts across universities), plus **schema.org JSON-LD** (`Organization` /
+  `Person` / `Dataset` / `CollectionPage`) on every page, a `sitemap.xml`, and
+  `robots.txt`. Owns top-of-funnel and SEO for the category. Served from the
+  same Vercel deploy under `/deals/`.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual
@@ -274,8 +304,10 @@ false-precision point estimates.
   residence) selects one of six regimes (see *Identity & regulatory moat*),
   each with its own cooling-off rule, annual limit, express-consent requirement,
   and currency.
-- **Web companion (SEO)** — `web/build.mjs` generates static, crawlable deal
-  pages and a leaderboard at `/deals/*` from the app's data, served from the
+- **Web companion (SEO)** — `web/build.mjs` generates a static, crawlable public
+  directory at `/deals/*` from the app's data and knowledge graph: deal pages,
+  founder pages, research-topic pages, a directory hub, schema.org JSON-LD,
+  `sitemap.xml`, and `robots.txt` (see *Distribution moat*). Served from the
   same Vercel deploy as the SPA.
 
 ## Testing & CI

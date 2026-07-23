@@ -26,10 +26,17 @@ jobs:
         run: npx jest --ci
       - name: Web bundle (Vercel target)
         run: EXPO_OFFLINE=1 npx expo export --platform web --output-dir dist
-      - name: Web companion (SEO deal pages)
+      - name: Web companion (public knowledge-graph directory)
         run: node ../web/build.mjs --out dist/deals
       - name: Companion output sanity
-        run: test -f dist/deals/index.html && test -f dist/deals/helion-dynamics.html
+        run: |
+          test -f dist/deals/index.html
+          test -f dist/deals/helion-dynamics.html
+          test -f dist/deals/directory.html
+          test -f dist/deals/people/dr-sofia-reyes.html
+          test -f dist/deals/topics/cryogenic-engineering.html
+          test -f dist/deals/sitemap.xml
+          test -f dist/deals/robots.txt
 
   backend:
     name: Backend API — build

@@ -11,6 +11,7 @@ import { formatMoney, formatMoneyCompact } from '../utils/format';
 import { AcademyScreen } from './AcademyScreen';
 import { OpsConsoleScreen } from './OpsConsoleScreen';
 import { PassportScreen } from './PassportScreen';
+import { PlatformScreen } from './PlatformScreen';
 import { TTOPortalScreen } from './TTOPortalScreen';
 
 const AUTOINVEST_KEY = 'univest.autoinvest.v1';
@@ -34,12 +35,15 @@ const DEFAULT_PREFS: AutoInvestPrefs = {
  *  and the University Portal for TTO officers. */
 export function ToolsScreen() {
   const s = useThemedStyles(makeStyles);
-  const [overlay, setOverlay] = useState<'none' | 'portal' | 'academy' | 'ops' | 'passport'>('none');
+  const [overlay, setOverlay] = useState<'none' | 'portal' | 'academy' | 'ops' | 'passport' | 'platform'>(
+    'none',
+  );
 
   if (overlay === 'portal') return <TTOPortalScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'academy') return <AcademyScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'ops') return <OpsConsoleScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'passport') return <PassportScreen onClose={() => setOverlay('none')} />;
+  if (overlay === 'platform') return <PlatformScreen onClose={() => setOverlay('none')} />;
 
   return (
     <ScrollView style={s.screen} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
@@ -102,6 +106,23 @@ export function ToolsScreen() {
           <Text style={s.portalHint}>
             Launch a raise from standardized templates · publish milestone updates · sign
             attestations with your registered key
+          </Text>
+        </View>
+        <Text style={s.portalArrow}>→</Text>
+      </Pressable>
+
+      <Pressable
+        style={s.portalCard}
+        onPress={() => setOverlay('platform')}
+        accessibilityRole="button"
+        accessibilityLabel="Open the embedded infrastructure developer platform"
+      >
+        <View style={s.portalLeft}>
+          <Text style={s.portalOverline}>FOR PARTNERS & DEVELOPERS</Text>
+          <Text style={s.portalTitle}>Embedded Infrastructure</Text>
+          <Text style={s.portalHint}>
+            Stripe-for-spinout-equity — SPV formation, attestation verification, and secondary
+            rails as an API for accelerators, platforms, and universities
           </Text>
         </View>
         <Text style={s.portalArrow}>→</Text>

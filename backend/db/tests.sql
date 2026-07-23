@@ -143,5 +143,41 @@ BEGIN
      WHERE user_id = '00000000-0000-0000-0000-000000000001' AND revoked_at IS NULL;
     ASSERT v_raised = 1, 'expected exactly one active passport, got ' || v_raised;
 
+    ------------------------------------------------------------------
+    -- 10. Embedded infrastructure: API-key lookup by digest + SPV
+    --     partner scoping + external_ref uniqueness
+    ------------------------------------------------------------------
+    -- The guard authenticates by hashing the presented key — never a stored
+    -- secret. The seeded 'sk_test_univest_demo' must resolve to Accelerate Labs.
+    PERFORM 1 FROM platform_partners
+      WHERE api_key_hash = digest('sk_test_univest_demo','sha256')
+        AND name = 'Accelerate Labs' AND active;
+    ASSERT FOUND, 'demo API key did not resolve to its partner';
+
+    -- The seeded partner already owns exactly one SPV.
+    SELECT COUNT(*) INTO v_raised FROM platform_spvs
+     WHERE partner_id = '00000000-0000-0000-0000-0000000000f1';
+    ASSERT v_raised = 1, 'expected one platform SPV for the demo partner, got ' || v_raised;
+
+    -- external_ref is unique per partner: re-using it must be rejected.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO platform_spvs (partner_id, external_ref, company_name, target_amount)
+        VALUES ('00000000-0000-0000-0000-0000000000f1','cohort-24-photonics','Dup Co',1000000);
+    EXCEPTION WHEN unique_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'duplicate (partner_id, external_ref) was not rejected';
+
+    -- A positive target is enforced.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO platform_spvs (partner_id, external_ref, company_name, target_amount)
+        VALUES ('00000000-0000-0000-0000-0000000000f1','bad-target','Zero Co',0);
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'non-positive target_amount was not rejected';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;
