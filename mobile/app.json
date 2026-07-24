@@ -2,23 +2,48 @@
   "expo": {
     "name": "UniVest",
     "slug": "univest",
-    "version": "0.1.0",
+    "version": "1.0.0",
+    "scheme": "univest",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#0A192F",
+    "primaryColor": "#D4AF37",
+    "icon": "./assets/icon.png",
+    "newArchEnabled": false,
     "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0A192F"
     },
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.univest.app"
+      "bundleIdentifier": "com.univest.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "UniVest shows the research map of university spinouts near you.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-      "package": "com.univest.app"
+      "package": "com.univest.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A192F"
+      },
+      "permissions": ["POST_NOTIFICATIONS"],
+      "config": {
+        "googleMaps": {
+          "apiKey": "DEMO_MAPS_KEY_REPLACE_FOR_NATIVE_MAP"
+        }
+      }
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
-    }
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-font", "expo-notifications"]
   }
 }

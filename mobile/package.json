@@ -5,15 +5,19 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test": "jest"
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFiles": ["./jest.setup.js"],
-    "testMatch": ["**/__tests__/**/*.test.[jt]s?(x)"]
+    "setupFiles": [
+      "./jest.setup.js"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.[jt]s?(x)"
+    ]
   },
   "dependencies": {
     "@expo-google-fonts/playfair-display": "^0.2.3",

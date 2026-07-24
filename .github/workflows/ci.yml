@@ -7,7 +7,7 @@ on:
 
 jobs:
   mobile:
-    name: Mobile — typecheck, tests, web builds
+    name: Mobile — typecheck, tests, native + web builds
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,6 +24,10 @@ jobs:
         run: npx tsc --noEmit
       - name: Unit & component tests (finance math, InvestPanel)
         run: npx jest --ci
+      - name: Mobile bundle (Android — Hermes bytecode)
+        run: EXPO_OFFLINE=1 npx expo export --platform android --output-dir dist-android
+      - name: Mobile bundle sanity
+        run: test -n "$(find dist-android/_expo/static/js/android -name '*.hbc' -o -name '*.js' | head -1)"
       - name: Web bundle (Vercel target)
         run: EXPO_OFFLINE=1 npx expo export --platform web --output-dir dist
       - name: Web companion (public knowledge-graph directory)

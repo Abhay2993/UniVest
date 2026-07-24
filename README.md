@@ -370,6 +370,51 @@ npm install
 npx expo start        # then press i (iOS simulator) or a (Android emulator)
 ```
 
+## Building the native mobile app
+
+The app is a full React Native / Expo (SDK 52, RN 0.76) project with committed
+native projects (`mobile/android`, `mobile/ios`), branded icon + splash
+(`mobile/assets`), `com.univest.app` on both platforms, and old-architecture
+config for a stable first build. Three ways to produce an installable binary:
+
+**A — Local Android APK (only needs the Android SDK, no Expo account):**
+
+```bash
+cd mobile
+npm install
+export ANDROID_HOME=$HOME/Android/Sdk        # your SDK location
+./android/gradlew -p android assembleRelease  # → android/app/build/outputs/apk/release/app-release.apk
+# (assembleDebug for a quick sideloadable build)
+```
+
+Open `mobile/android` in Android Studio and press **Run** for the same result.
+For a live Google map on the native build, replace the placeholder
+`android.config.googleMaps.apiKey` in `app.json` with a real key (the app ships
+a `.web.tsx` map fallback, so this is only needed for native).
+
+**B — iOS (macOS + Xcode):**
+
+```bash
+cd mobile/ios && pod install && cd ..
+open ios/UniVest.xcodeproj    # set your signing team, then Run
+```
+
+**C — Cloud build with EAS (needs a free Expo account):** profiles are defined
+in `mobile/eas.json`.
+
+```bash
+npx eas login
+npx eas build -p android --profile preview      # installable APK
+npx eas build -p android --profile production    # Play Store AAB
+npx eas build -p ios --profile production        # App Store IPA
+```
+
+> Note: this repo was assembled in a sandbox whose egress policy blocks the
+> Android SDK host (`dl.google.com`), so the signed APK is produced by one of
+> the commands above on a machine with the SDK — everything else (branded
+> assets, native projects, versioning, and a verified Android JS bundle) is
+> already in place.
+
 ## Provisioning the Database
 
 ```bash
