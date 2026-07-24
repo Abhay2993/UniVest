@@ -4,6 +4,10 @@ node_modules/
 dist/
 dist-android/
 *.tsbuildinfo
+
+# Generated native projects (Expo CNG — regenerate with `expo prebuild`)
+/mobile/android/
+/mobile/ios/
 npm-debug.log*
 .env
 .test-build/

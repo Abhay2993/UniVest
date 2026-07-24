@@ -372,22 +372,25 @@ npx expo start        # then press i (iOS simulator) or a (Android emulator)
 
 ## Building the native mobile app
 
-The app is a full React Native / Expo (SDK 52, RN 0.76) project with committed
-native projects (`mobile/android`, `mobile/ios`), branded icon + splash
-(`mobile/assets`), `com.univest.app` on both platforms, and old-architecture
-config for a stable first build. Three ways to produce an installable binary:
+The app is a full React Native / Expo (SDK 52, RN 0.76) project with branded
+icon + splash (`mobile/assets`), `com.univest.app` on both platforms, and
+old-architecture config for a stable first build. The native `android`/`ios`
+projects are generated on demand with `expo prebuild` (Continuous Native
+Generation) — `app.json` is the source of truth, so they are not committed.
+Three ways to produce an installable binary:
 
 **A — Local Android APK (only needs the Android SDK, no Expo account):**
 
 ```bash
 cd mobile
 npm install
-export ANDROID_HOME=$HOME/Android/Sdk        # your SDK location
+npx expo prebuild --platform android          # generates ./android from app.json
+export ANDROID_HOME=$HOME/Android/Sdk         # your SDK location
 ./android/gradlew -p android assembleRelease  # → android/app/build/outputs/apk/release/app-release.apk
 # (assembleDebug for a quick sideloadable build)
 ```
 
-Open `mobile/android` in Android Studio and press **Run** for the same result.
+Or open the generated `mobile/android` in Android Studio and press **Run**.
 For a live Google map on the native build, replace the placeholder
 `android.config.googleMaps.apiKey` in `app.json` with a real key (the app ships
 a `.web.tsx` map fallback, so this is only needed for native).
@@ -395,8 +398,10 @@ a `.web.tsx` map fallback, so this is only needed for native).
 **B — iOS (macOS + Xcode):**
 
 ```bash
-cd mobile/ios && pod install && cd ..
-open ios/UniVest.xcodeproj    # set your signing team, then Run
+cd mobile
+npx expo prebuild --platform ios              # generates ./ios from app.json
+cd ios && pod install && cd ..
+open ios/UniVest.xcodeproj                     # set your signing team, then Run
 ```
 
 **C — Cloud build with EAS (needs a free Expo account):** profiles are defined
