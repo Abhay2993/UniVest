@@ -82,6 +82,20 @@ framework.
 - **Portfolio analytics** — paid-in vs current value, TVPI, and true XIRR
   from cash-flow dates; quarterly NAV line chart (validated emerald); Tax
   Document Center for Schedule K-1s (`spv_valuations`, `tax_documents`).
+- **Analytics & tax center** (Portfolio → Analytics / Tax tabs) — institutional
+  reporting layered on the portfolio: an **Analytics** tab with a performance
+  panel (TVPI, IRR, unrealized vs realized), **exposure breakdowns by vertical,
+  geography, and stage** (share-of-value bars), and a MOIC-ranked position list;
+  a **Tax** tab with the document vault plus **tax lots** — per-acquisition cost
+  basis with long- vs short-term holding-period classification. Real backend
+  module ([`backend/api/src/portfolio`](backend/api/src/portfolio)): `GET
+  /portfolio/analytics` (per-position + portfolio IRR/TVPI/MOIC and exposure
+  aggregates over the `investor_position_metrics` view and `spv_valuations`) and
+  `GET /portfolio/tax` (documents + lots with holding-period math). New
+  `tax_lots` table (RLS-scoped to the owner; positive-units and disposal-order
+  CHECKs) with three DB assertions. The mobile tabs are powered by the pure,
+  unit-tested [`portfolio-analytics.ts`](mobile/src/utils/portfolio-analytics.ts)
+  (6 tests) and the existing `xirr`/`tvpi` helpers.
 - **Batch-auction liquidity windows** — monthly uniform-price auctions
   replace the thin continuous book; the `clear_auction()` SQL function and
   its TypeScript mirror pick the volume-maximizing price (plateau midpoint)

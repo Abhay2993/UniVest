@@ -246,5 +246,34 @@ BEGIN
     END;
     ASSERT v_blocked, 'tender over-fill was not rejected';
 
+    ------------------------------------------------------------------
+    -- 13. Tax lots: sum to the holding, positive units, disposal order
+    ------------------------------------------------------------------
+    -- Alice's lots for the Vasca SPV sum to her 250-unit holding.
+    SELECT SUM(units) INTO v_raised FROM tax_lots
+     WHERE user_id = '00000000-0000-0000-0000-000000000001'
+       AND spv_id = '00000000-0000-0000-0000-0000000000af';
+    ASSERT v_raised = 250, 'tax lots do not sum to the holding: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- Zero-unit lot rejected.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO tax_lots (user_id, spv_id, acquired_on, units, cost_basis)
+        VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000af','2025-01-01',0,0);
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'zero-unit tax lot was not rejected';
+
+    -- Disposal before acquisition rejected.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO tax_lots (user_id, spv_id, acquired_on, units, cost_basis, disposed_on)
+        VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000af','2025-06-01',10,100,'2025-01-01');
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'disposal-before-acquisition was not rejected';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

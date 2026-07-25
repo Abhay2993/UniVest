@@ -783,6 +783,22 @@ CREATE TABLE tax_documents (
     UNIQUE (user_id, spv_id, tax_year, kind)
 );
 
+-- Tax lots: per-acquisition cost-basis lots for a position, so the Tax Center
+-- can show holding period (long- vs short-term) and per-lot gain on disposal.
+CREATE TABLE tax_lots (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID          NOT NULL REFERENCES users(id),
+    spv_id       UUID          NOT NULL REFERENCES spvs(id),
+    acquired_on  DATE          NOT NULL,
+    units        NUMERIC(24,6) NOT NULL CHECK (units > 0),
+    cost_basis   NUMERIC(18,2) NOT NULL CHECK (cost_basis >= 0),
+    disposed_on  DATE,
+    proceeds     NUMERIC(18,2),
+    created_at   TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    CONSTRAINT chk_lot_disposal CHECK (disposed_on IS NULL OR disposed_on >= acquired_on)
+);
+CREATE INDEX idx_tax_lots_user ON tax_lots(user_id, spv_id);
+
 -- Unrealized position metrics from the latest NAV mark (IRR/TVPI with
 -- distributions are computed by the analytics service, which also has the
 -- cash-flow dates). security_invoker: spv_holdings RLS must filter for the
@@ -1107,6 +1123,11 @@ CREATE POLICY auction_orders_own ON auction_orders
 ALTER TABLE tax_documents ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tax_docs_own ON tax_documents FOR SELECT
     USING (user_id = app_user_id() OR app_is_admin());
+
+ALTER TABLE tax_lots ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tax_lots_own ON tax_lots
+    USING (user_id = app_user_id() OR app_is_admin())
+    WITH CHECK (user_id = app_user_id() OR app_is_admin());
 
 ALTER TABLE copilot_exchanges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY copilot_own ON copilot_exchanges

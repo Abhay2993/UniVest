@@ -1,14 +1,23 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { EXITED_POSITIONS, PORTFOLIO_POSITIONS, STARTUPS, TAX_DOCUMENTS } from '../data/mock';
 import { Startup } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
 import { useThemedStyles } from '../theme/ThemeContext';
 import { usePortfolio } from '../state/PortfolioContext';
 import { CashFlow, tvpi, xirr } from '../utils/finance';
-import { formatDate, formatMoney } from '../utils/format';
+import { formatDate, formatMoney, formatMoneyPrecise } from '../utils/format';
+import {
+  exposureBy,
+  isLongTerm,
+  moic,
+  stageFromMilestones,
+} from '../utils/portfolio-analytics';
 import { ChartPoint, LineChart } from '../components/LineChart';
 import { PortfolioRiskCard } from '../components/PortfolioRiskCard';
+
+type PortfolioView = 'overview' | 'analytics' | 'tax';
 
 interface Props {
   onSelectStartup: (startup: Startup) => void;
@@ -22,6 +31,7 @@ interface Props {
 export function PortfolioScreen({ onSelectStartup }: Props) {
   const s = useThemedStyles(makeStyles);
   const { commitments } = usePortfolio();
+  const [view, setView] = useState<PortfolioView>('overview');
 
   const signedAgreements = useMemo(
     () =>
@@ -70,6 +80,49 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
     });
   }, []);
 
+  // Per-position analytics: join to the startup for vertical/geography/stage.
+  const analyticsPositions = useMemo(() => {
+    const now = Date.now();
+    return PORTFOLIO_POSITIONS.map((p) => {
+      const startup = STARTUPS.find((st) => st.id === p.startupId);
+      const nav = p.navSeries[p.navSeries.length - 1]?.navPerUnit ?? p.costBasis / p.units;
+      const currentValue = p.units * nav;
+      const completed = startup?.milestones.filter((m) => m.status === 'completed').length ?? 0;
+      return {
+        id: p.id,
+        name: p.startupName,
+        currentValue,
+        costBasis: p.costBasis,
+        units: p.units,
+        vertical: startup?.vertical ?? 'Unknown',
+        country: startup?.university.country ?? 'Unknown',
+        stage: stageFromMilestones(completed),
+        moic: moic(currentValue, p.costBasis),
+        acquiredOn: p.investedOn,
+        longTerm: isLongTerm(Date.parse(p.investedOn), now),
+        spvName: p.spvName,
+      };
+    });
+  }, []);
+
+  const exposure = useMemo(
+    () => ({
+      byVertical: exposureBy(analyticsPositions, (p) => p.vertical),
+      byGeography: exposureBy(analyticsPositions, (p) => p.country),
+      byStage: exposureBy(analyticsPositions, (p) => p.stage),
+    }),
+    [analyticsPositions],
+  );
+
+  const realized = useMemo(() => {
+    const dist = EXITED_POSITIONS.reduce((sum, e) => {
+      const profit = Math.max(e.grossProceeds - e.costBasis, 0);
+      const carry = Math.round(profit * e.carryPct) / 100;
+      return sum + (e.grossProceeds - carry);
+    }, 0);
+    return Math.round(dist * 100) / 100;
+  }, []);
+
   return (
     <ScrollView style={s.screen} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
       <View style={s.hero}>
@@ -86,6 +139,27 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
         </View>
       </View>
 
+      <View style={s.segmented}>
+        {(['overview', 'analytics', 'tax'] as PortfolioView[]).map((v) => (
+          <Pressable
+            key={v}
+            style={[s.segment, view === v && s.segmentActive]}
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              setView(v);
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: view === v }}
+          >
+            <Text style={[s.segmentText, view === v && s.segmentTextActive]}>
+              {v === 'overview' ? 'Overview' : v === 'analytics' ? 'Analytics' : 'Tax'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {view === 'overview' && (
+        <>
       <View style={s.card}>
         <Text style={s.overline}>Portfolio Value — Quarterly NAV Marks</Text>
         <View style={s.chartWrap}>
@@ -169,7 +243,51 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
           </View>
         );
       })}
+        </>
+      )}
 
+      {view === 'analytics' && (
+        <>
+          <View style={s.card}>
+            <Text style={s.overline}>Performance</Text>
+            <View style={s.metricGrid}>
+              <MetricTile k="TVPI" v={`${metrics.multiple.toFixed(2)}x`} />
+              <MetricTile k="IRR (XIRR)" v={metrics.irr === null ? '—' : `${(metrics.irr * 100).toFixed(1)}%`} />
+              <MetricTile k="Unrealized" v={formatMoney(metrics.currentValue)} />
+              <MetricTile k="Realized" v={formatMoney(realized)} />
+            </View>
+            <Text style={s.taxHint}>
+              MOIC is value ÷ cost; TVPI adds realized distributions. IRR is annualized over your
+              actual capital-call dates.
+            </Text>
+          </View>
+
+          <ExposureCard title="Exposure by Vertical" slices={exposure.byVertical} />
+          <ExposureCard title="Exposure by Geography" slices={exposure.byGeography} />
+          <ExposureCard title="Exposure by Stage" slices={exposure.byStage} />
+
+          <View style={s.card}>
+            <Text style={s.overline}>Positions by MOIC</Text>
+            {analyticsPositions.map((p, i) => (
+              <View key={p.id} style={[s.moicRow, i === analyticsPositions.length - 1 && s.positionLast]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.positionName}>{p.name}</Text>
+                  <Text style={s.positionSub}>{p.vertical} · {p.country} · {p.stage}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={s.positionValue}>{formatMoney(p.currentValue)}</Text>
+                  <Text style={[s.positionMultiple, p.moic < 1 && s.positionMultipleDown]}>
+                    {p.moic.toFixed(2)}x
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
+      {view === 'tax' && (
+        <>
       <View style={s.card}>
         <Text style={s.overline}>Document Vault</Text>
         <Text style={s.taxHint}>
@@ -208,6 +326,32 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
           </View>
         ))}
       </View>
+
+      <View style={s.card}>
+        <Text style={s.overline}>Tax Lots</Text>
+        <Text style={s.taxHint}>
+          Cost-basis lots per position. Holding period drives long- vs short-term capital-gains
+          treatment on disposal.
+        </Text>
+        {analyticsPositions.map((p, i) => (
+          <View key={p.id} style={[s.taxRow, i === analyticsPositions.length - 1 && s.positionLast]}>
+            <View style={s.taxLeft}>
+              <Text style={s.taxKind}>{p.name} · {p.units.toLocaleString('en-US')} units</Text>
+              <Text style={s.positionSub}>
+                Acquired {formatDate(p.acquiredOn)} · cost {formatMoney(p.costBasis)} · basis{' '}
+                {formatMoneyPrecise(p.costBasis / p.units)}/unit
+              </Text>
+            </View>
+            <View style={[s.termBadge, p.longTerm ? s.termLong : s.termShort]}>
+              <Text style={[s.termText, p.longTerm ? s.termLongText : s.termShortText]}>
+                {p.longTerm ? 'Long-term' : 'Short-term'}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+        </>
+      )}
     </ScrollView>
   );
 
@@ -216,6 +360,34 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
       <View style={s.waterfallRow}>
         <Text style={[s.waterfallLabel, muted && s.waterfallMuted]}>{label}</Text>
         <Text style={[s.waterfallValue, muted && s.waterfallMuted]}>{value}</Text>
+      </View>
+    );
+  }
+
+  function MetricTile({ k, v }: { k: string; v: string }) {
+    return (
+      <View style={s.metricTile}>
+        <Text style={s.metricV} numberOfLines={1} adjustsFontSizeToFit>{v}</Text>
+        <Text style={s.metricK}>{k}</Text>
+      </View>
+    );
+  }
+
+  function ExposureCard({ title, slices }: { title: string; slices: { key: string; value: number; pct: number }[] }) {
+    return (
+      <View style={s.card}>
+        <Text style={s.overline}>{title}</Text>
+        {slices.map((sl) => (
+          <View key={sl.key} style={s.expRow}>
+            <View style={s.expHead}>
+              <Text style={s.expKey}>{sl.key}</Text>
+              <Text style={s.expPct}>{sl.pct}% · {formatMoney(sl.value)}</Text>
+            </View>
+            <View style={s.expTrack}>
+              <View style={[s.expFill, { width: `${Math.max(2, sl.pct)}%` }]} />
+            </View>
+          </View>
+        ))}
       </View>
     );
   }
@@ -282,6 +454,51 @@ const makeStyles = (c: Palette) => {
       marginBottom: space.md,
     },
     overline: { ...T.overline },
+
+    // Segmented control (Overview / Analytics / Tax)
+    segmented: {
+      flexDirection: 'row',
+      backgroundColor: c.surfaceMuted,
+      borderRadius: radius.sm,
+      padding: 3,
+      marginHorizontal: space.md,
+      marginBottom: space.md,
+    },
+    segment: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: radius.sm - 2 },
+    segmentActive: { backgroundColor: c.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline },
+    segmentText: { fontFamily: font.sans, fontSize: 13, fontWeight: '600', color: c.inkMuted },
+    segmentTextActive: { color: c.ink },
+
+    // Performance metric tiles
+    metricGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space.sm },
+    metricTile: { width: '50%', paddingVertical: space.sm },
+    metricV: { fontFamily: font.serif, fontSize: 22, color: c.ink, ...tabularNums },
+    metricK: { fontFamily: font.sans, fontSize: 10, letterSpacing: 0.8, textTransform: 'uppercase', color: c.inkFaint, marginTop: 1 },
+
+    // Exposure bars
+    expRow: { marginTop: space.md },
+    expHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 },
+    expKey: { fontFamily: font.sans, fontSize: 13, fontWeight: '600', color: c.ink },
+    expPct: { fontFamily: font.sans, fontSize: 12, color: c.inkMuted, ...tabularNums },
+    expTrack: { height: 8, borderRadius: 4, backgroundColor: c.surfaceMuted, overflow: 'hidden' },
+    expFill: { height: '100%', borderRadius: 4, backgroundColor: c.gold },
+
+    moicRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.hairline,
+      paddingVertical: space.md,
+    },
+
+    // Tax-lot holding-period badges
+    termBadge: { borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: 4 },
+    termLong: { backgroundColor: c.surfaceGoldTint },
+    termShort: { borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline },
+    termText: { fontFamily: font.sans, fontSize: 10, fontWeight: '700', letterSpacing: 0.4 },
+    termLongText: { color: c.bronze },
+    termShortText: { color: c.inkMuted },
+
     chartWrap: { marginTop: space.md },
     chartNote: { ...T.caption, fontSize: 10, marginTop: space.sm },
 
