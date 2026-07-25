@@ -37,6 +37,8 @@ CREATE TYPE auction_status     AS ENUM ('scheduled', 'open', 'cleared', 'settled
 CREATE TYPE order_side         AS ENUM ('buy', 'sell');
 CREATE TYPE order_status       AS ENUM ('open', 'filled', 'partially_filled', 'unfilled', 'cancelled');
 CREATE TYPE partner_kind        AS ENUM ('accelerator', 'platform', 'university', 'syndicate');
+CREATE TYPE angel_status        AS ENUM ('pending', 'active', 'suspended');
+CREATE TYPE lead_status         AS ENUM ('proposed', 'committed', 'closed', 'withdrawn');
 
 -- ----------------------------------------------------------------------------
 -- Users (retail investors, institutional leads, TTO officers, admins)
@@ -466,6 +468,46 @@ CREATE TABLE platform_spvs (
     UNIQUE (partner_id, external_ref)
 );
 CREATE INDEX idx_platform_spvs_partner ON platform_spvs(partner_id);
+
+-- ----------------------------------------------------------------------------
+-- Angel investors — an accredited persona layered over `users`. Angels get
+-- early deal access (before a raise opens to the public) and can lead or
+-- co-lead an SPV, earning carry on the profit they help raise. The primitives
+-- (accreditation, syndicates, carry) already exist; these tables make them a
+-- first-class product.
+-- ----------------------------------------------------------------------------
+CREATE TABLE angel_profiles (
+    user_id           UUID PRIMARY KEY REFERENCES users(id),
+    thesis            TEXT,
+    committed_capital NUMERIC(18,2) NOT NULL DEFAULT 0 CHECK (committed_capital >= 0),
+    focus_verticals   TEXT[]        NOT NULL DEFAULT '{}',
+    status            angel_status  NOT NULL DEFAULT 'pending',
+    verified_at       TIMESTAMPTZ,
+    created_at        TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+
+-- The early-access window: a campaign is open to angels before the public.
+CREATE TABLE angel_deals (
+    campaign_id        UUID PRIMARY KEY REFERENCES campaigns(id),
+    opens_to_angels_at TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    public_opens_at    TIMESTAMPTZ  NOT NULL,
+    min_ticket         NUMERIC(18,2) NOT NULL DEFAULT 5000 CHECK (min_ticket > 0),
+    allocation_units   NUMERIC(24,6),
+    CHECK (public_opens_at >= opens_to_angels_at)
+);
+
+-- An angel leading (or co-leading) a deal, with the carry they earn as lead.
+CREATE TABLE spv_leads (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id       UUID          NOT NULL REFERENCES campaigns(id),
+    angel_user_id     UUID          NOT NULL REFERENCES users(id),
+    committed_amount  NUMERIC(18,2) NOT NULL CHECK (committed_amount > 0),
+    carry_pct         NUMERIC(5,2)  NOT NULL DEFAULT 20.00 CHECK (carry_pct >= 0 AND carry_pct <= 30),
+    status            lead_status   NOT NULL DEFAULT 'proposed',
+    created_at        TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    UNIQUE (campaign_id, angel_user_id)
+);
+CREATE INDEX idx_spv_leads_angel ON spv_leads(angel_user_id);
 
 -- ----------------------------------------------------------------------------
 -- Investments (primary market subscriptions)

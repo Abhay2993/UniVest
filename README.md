@@ -269,6 +269,37 @@ false-precision point estimates.
   `Person` / `Dataset` / `CollectionPage`) on every page, a `sitemap.xml`, and
   `robots.txt`. Owns top-of-funnel and SEO for the category. Served from the
   same Vercel deploy under `/deals/`.
+
+### Global reach & the angel investor tier
+
+- **Global university & country expansion** — the roster spans **11 premier
+  universities across 8 countries**, activating the regimes the compliance
+  engine already codes: 🇨🇦 University of Toronto (Torus AI), University of
+  Waterloo (Qform Quantum) · 🇸🇬 NUS (Tropos Carbon), NTU (Helios Grid) · 🇦🇺
+  University of Melbourne (Cygnus Bio), UNSW (Silex Quantum) — alongside the
+  original MIT/ETH/Oxford/TU Delft/KAIST. Two verticals were added (Climate Tech,
+  Semiconductors). Each spinout flows automatically into the knowledge-graph
+  directory, founder/topic pages, leaderboard, and the Global Research Map, with
+  deliberate **cross-portfolio links** (Silex shares *Cryogenic engineering* with
+  Helion + Qubit; Qform shares *Photonic error correction* with Qubit Foundry).
+  Data-and-graph only ([`mobile/src/data/mock.ts`](mobile/src/data/mock.ts),
+  [`graph.ts`](mobile/src/data/graph.ts)) — no new API surface — so the public
+  directory becomes genuinely global (35 crawlable URLs).
+- **Angel investor tier** — an accredited persona distinct from retail
+  crowdfunding. Angels self-certify accreditation, unlock **early access** to
+  deals before the public raise, and **lead an SPV** — committing capital and
+  earning **carry** on the profit they help raise. Real backend module
+  ([`backend/api/src/angel`](backend/api/src/angel)): `POST /angel/apply`
+  (accredited → active, else pending), `GET /angel/me`, `GET /angel/dealflow`
+  (campaigns inside their angel-only window), `POST /angel/deals/:id/lead`
+  (min-ticket + carry-bound enforced), and `GET /angel/leads`. Backed by
+  `angel_profiles` / `angel_deals` / `spv_leads` tables and four DB assertions
+  (accreditation, early-access window, one-lead-per-deal, carry ∈ [0,30]).
+  The mobile AngelScreen (Tools) drives apply → status → early-access deal flow →
+  a **lead panel with a live carry preview** at 2×/3×/5× exits, powered by the
+  pure, unit-tested [`angel.ts`](mobile/src/utils/angel.ts) (6 tests). Its
+  early-access deals are the new global spinouts — the two features reinforce
+  each other.
 - **Onboarding, KYC & suitability quiz** — welcome flow → simulated identity
   verification (Persona-style) → 5-question suitability quiz (pass ≥4, retake
   with explanations) → income/net-worth bands compute the real Reg CF annual

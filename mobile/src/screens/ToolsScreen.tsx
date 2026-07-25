@@ -9,6 +9,7 @@ import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatMoney, formatMoneyCompact } from '../utils/format';
 import { AcademyScreen } from './AcademyScreen';
+import { AngelScreen } from './AngelScreen';
 import { OpsConsoleScreen } from './OpsConsoleScreen';
 import { PassportScreen } from './PassportScreen';
 import { PlatformScreen } from './PlatformScreen';
@@ -35,15 +36,16 @@ const DEFAULT_PREFS: AutoInvestPrefs = {
  *  and the University Portal for TTO officers. */
 export function ToolsScreen() {
   const s = useThemedStyles(makeStyles);
-  const [overlay, setOverlay] = useState<'none' | 'portal' | 'academy' | 'ops' | 'passport' | 'platform'>(
-    'none',
-  );
+  const [overlay, setOverlay] = useState<
+    'none' | 'portal' | 'academy' | 'ops' | 'passport' | 'platform' | 'angel'
+  >('none');
 
   if (overlay === 'portal') return <TTOPortalScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'academy') return <AcademyScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'ops') return <OpsConsoleScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'passport') return <PassportScreen onClose={() => setOverlay('none')} />;
   if (overlay === 'platform') return <PlatformScreen onClose={() => setOverlay('none')} />;
+  if (overlay === 'angel') return <AngelScreen onClose={() => setOverlay('none')} />;
 
   return (
     <ScrollView style={s.screen} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
@@ -67,6 +69,23 @@ export function ToolsScreen() {
           <Text style={s.portalHint}>
             Your verified KYC + accreditation + suitability as a portable, cryptographically
             verifiable credential — reusable across platforms
+          </Text>
+        </View>
+        <Text style={s.portalArrow}>→</Text>
+      </Pressable>
+
+      <Pressable
+        style={s.portalCard}
+        onPress={() => setOverlay('angel')}
+        accessibilityRole="button"
+        accessibilityLabel="Open the angel investor program"
+      >
+        <View style={s.portalLeft}>
+          <Text style={s.portalOverline}>FOR ACCREDITED INVESTORS</Text>
+          <Text style={s.portalTitle}>Angel Investors</Text>
+          <Text style={s.portalHint}>
+            Early access before the public raise · lead an SPV and earn carry on the capital you
+            help raise
           </Text>
         </View>
         <Text style={s.portalArrow}>→</Text>

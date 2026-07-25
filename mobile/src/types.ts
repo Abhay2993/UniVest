@@ -3,7 +3,9 @@ export type Vertical =
   | 'Quantum Computing'
   | 'MedTech'
   | 'AI & Robotics'
-  | 'Advanced Materials';
+  | 'Advanced Materials'
+  | 'Climate Tech'
+  | 'Semiconductors';
 
 export type MilestoneStatus = 'completed' | 'in_progress' | 'upcoming';
 

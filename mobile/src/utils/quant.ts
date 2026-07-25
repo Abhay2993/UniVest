@@ -30,6 +30,8 @@ const SECTOR_START_TRL: Record<Vertical, number> = {
   MedTech: 4,
   'AI & Robotics': 4,
   'Advanced Materials': 4,
+  'Climate Tech': 4,
+  Semiconductors: 4,
 };
 
 const SECTOR_RISK: Record<Vertical, number> = {
@@ -38,6 +40,8 @@ const SECTOR_RISK: Record<Vertical, number> = {
   MedTech: 0.6,
   'AI & Robotics': 0.5,
   'Advanced Materials': 0.55,
+  'Climate Tech': 0.7,
+  Semiconductors: 0.65,
 };
 
 // ---------------------------------------------------------------------------

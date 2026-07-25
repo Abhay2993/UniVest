@@ -206,3 +206,25 @@ INSERT INTO platform_spvs (id, partner_id, external_ref, company_name, vertical,
 VALUES ('00000000-0000-0000-0000-0000000000f2','00000000-0000-0000-0000-0000000000f1',
         'cohort-24-photonics','Lumen Photonics','Photonics',1500000,'USD','forming')
 ON CONFLICT DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- Angel investor: Alice becomes an accredited angel with a live early-access
+-- deal (the tto_review campaign, not yet public) and a lead position on it.
+-- ----------------------------------------------------------------------------
+UPDATE users SET accreditation = 'accredited' WHERE id = '00000000-0000-0000-0000-000000000001';
+
+INSERT INTO angel_profiles (user_id, thesis, committed_capital, focus_verticals, status, verified_at)
+VALUES ('00000000-0000-0000-0000-000000000001',
+        'Deep-tech spinouts with independently attested lab milestones.',
+        250000, ARRAY['Fusion Energy','Quantum Computing'], 'active', now())
+ON CONFLICT (user_id) DO NOTHING;
+
+-- The tto_review campaign is open to angels now, public in 10 days.
+INSERT INTO angel_deals (campaign_id, opens_to_angels_at, public_opens_at, min_ticket, allocation_units)
+VALUES ('00000000-0000-0000-0000-0000000000b7', now() - interval '3 days', now() + interval '10 days', 5000, 25000)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO spv_leads (id, campaign_id, angel_user_id, committed_amount, carry_pct, status)
+VALUES ('00000000-0000-0000-0000-0000000000f3','00000000-0000-0000-0000-0000000000b7',
+        '00000000-0000-0000-0000-000000000001', 50000, 20.00, 'committed')
+ON CONFLICT DO NOTHING;

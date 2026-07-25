@@ -61,4 +61,6 @@ export const INDEX_BY_VERTICAL: Record<Vertical, IndexPoint[]> = {
   MedTech: series([100, 106, 112, 118, 121, 129, 134, 140, 149, 158]),
   'AI & Robotics': series([100, 108, 115, 113, 122, 131, 128, 139, 147, 155]),
   'Advanced Materials': series([100, 102, 105, 109, 108, 114, 119, 123, 128, 134]),
+  'Climate Tech': series([100, 105, 109, 116, 121, 118, 127, 135, 144, 151]),
+  Semiconductors: series([100, 107, 114, 120, 117, 128, 137, 133, 145, 159]),
 };

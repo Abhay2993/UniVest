@@ -17,6 +17,8 @@ export const VERTICALS: Vertical[] = [
   'MedTech',
   'AI & Robotics',
   'Advanced Materials',
+  'Climate Tech',
+  'Semiconductors',
 ];
 
 const mit: University = { id: 'u1', name: 'Massachusetts Institute of Technology', shortName: 'MIT', country: 'USA', city: 'Cambridge', latitude: 42.3601, longitude: -71.0942, activeDeals: 4 };
@@ -24,8 +26,19 @@ const eth: University = { id: 'u2', name: 'ETH Zürich', shortName: 'ETH', count
 const oxford: University = { id: 'u3', name: 'University of Oxford', shortName: 'Oxford', country: 'GBR', city: 'Oxford', latitude: 51.7548, longitude: -1.2544, activeDeals: 2 };
 const tudelft: University = { id: 'u4', name: 'TU Delft', shortName: 'TU Delft', country: 'NLD', city: 'Delft', latitude: 52.0022, longitude: 4.3736, activeDeals: 2 };
 const kaist: University = { id: 'u5', name: 'KAIST', shortName: 'KAIST', country: 'KOR', city: 'Daejeon', latitude: 36.3721, longitude: 127.3604, activeDeals: 1 };
+// Global expansion — premier universities in the regimes the compliance engine
+// already supports (Canada, Singapore, Australia).
+const toronto: University = { id: 'u6', name: 'University of Toronto', shortName: 'Toronto', country: 'CAN', city: 'Toronto', latitude: 43.6629, longitude: -79.3957, activeDeals: 1 };
+const waterloo: University = { id: 'u7', name: 'University of Waterloo', shortName: 'Waterloo', country: 'CAN', city: 'Waterloo', latitude: 43.4723, longitude: -80.5449, activeDeals: 1 };
+const nus: University = { id: 'u8', name: 'National University of Singapore', shortName: 'NUS', country: 'SGP', city: 'Singapore', latitude: 1.2966, longitude: 103.7764, activeDeals: 1 };
+const ntu: University = { id: 'u9', name: 'Nanyang Technological University', shortName: 'NTU', country: 'SGP', city: 'Singapore', latitude: 1.3483, longitude: 103.6831, activeDeals: 1 };
+const melbourne: University = { id: 'u10', name: 'University of Melbourne', shortName: 'Melbourne', country: 'AUS', city: 'Melbourne', latitude: -37.7964, longitude: 144.9612, activeDeals: 1 };
+const unsw: University = { id: 'u11', name: 'UNSW Sydney', shortName: 'UNSW', country: 'AUS', city: 'Sydney', latitude: -33.9173, longitude: 151.2313, activeDeals: 1 };
 
-export const UNIVERSITIES: University[] = [mit, eth, oxford, tudelft, kaist];
+export const UNIVERSITIES: University[] = [
+  mit, eth, oxford, tudelft, kaist,
+  toronto, waterloo, nus, ntu, melbourne, unsw,
+];
 
 export const STARTUPS: Startup[] = [
   {
@@ -279,6 +292,274 @@ export const STARTUPS: Startup[] = [
       { id: 'd1', docTitle: 'License Agreement', section: '§2 Scope', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'KAIST owns the vascular-network patents and licenses them exclusively for aerospace and defense applications; the company retains foreground IP on the resin chemistry. University equity: 12% under the standardized template.' },
       { id: 'd2', docTitle: 'Competitive Assessment', section: '§3 Alternatives', keywords: ['competitor', 'competitors', 'competition', 'market', 'materials'], text: 'Capsule-based self-healing composites (two US startups) lose capacity after first rupture. Thermoplastic-weld approaches need autoclave access in the field. Lattice\'s vascular system is the only replenishable option at aerospace temperatures.' },
       { id: 'd3', docTitle: 'Financial Model v2', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'funds', 'financials', 'revenue'], text: 'The $900K raise funds 14 months at $58K/month through prime-contractor test-article delivery. Qualification programme entry converts to a paid JDP worth $600K, modeled for Q3 2027.' },
+    ],
+  },
+
+  // --------------------------------------------------------------------------
+  // Global expansion — Canada, Singapore, Australia (regimes already coded)
+  // --------------------------------------------------------------------------
+  {
+    id: 's6',
+    name: 'Torus AI',
+    university: toronto,
+    vertical: 'Semiconductors',
+    tagline: 'Neuromorphic inference chips that run large models at a tenth of the power.',
+    verified: true,
+    targetAmount: 3_200_000,
+    raisedAmount: 1_410_000,
+    investorCount: 806,
+    minInvestment: 100,
+    daysLeft: 27,
+    leadInvestor: 'Radical Ventures',
+    pitch: {
+      plainEnglish:
+        'Running today\'s AI models burns enormous amounts of electricity. Torus builds a chip modeled on how neurons fire — it only does work when the data changes, so it answers the same questions using a fraction of the power.',
+      commercialization:
+        'Edge AI in phones, cameras, and cars can\'t afford datacentre power budgets. Torus sells an inference accelerator with two design-win evaluations underway at tier-one device makers.',
+      labProof:
+        'A 28nm test chip sustained 41 TOPS/W on transformer inference — an order of magnitude better than incumbent NPUs — presented at ISSCC 2025 and independently benchmarked by the Vector Institute.',
+    },
+    milestones: [
+      {
+        id: 'm1', title: 'Test-Chip Tape-out', description: '28nm neuromorphic core, silicon-validated at 41 TOPS/W.', status: 'completed', date: '2025-11-04', hasVideoUpdate: true,
+        attestation: { verifierName: 'Prof. R. Grosse', verifierOrg: 'University of Toronto — Dept. of ECE', role: 'independent_reviewer', signedAt: '2025-11-12', keyFingerprint: '9A11·4E7D' },
+      },
+      { id: 'm2', title: 'Design-Win Evaluations', description: 'Two tier-one device makers running silicon in eval kits.', status: 'in_progress', date: '2026-10-15' },
+      { id: 'm3', title: 'Automotive-Grade Qualification', description: 'AEC-Q100 qualification for in-cabin perception.', status: 'upcoming', date: '2027-06-01' },
+    ],
+    questions: [
+      {
+        id: 'q1', authorName: 'D. Okonkwo', role: 'investor', date: '2026-07-08', upvotes: 12,
+        body: 'How portable is the toolchain? Adoption dies if customers have to rewrite their models for your architecture.',
+        answers: [
+          { id: 'a1', authorName: 'É. Tremblay · Founder', role: 'founder', date: '2026-07-09', body: 'We compile from standard ONNX and PyTorch exports — the sparsity mapping happens in our compiler, not in the customer\'s model. Both eval partners brought their existing models and were running on silicon within a week.' },
+        ],
+      },
+    ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'License Agreement', section: '§2 IP', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'The University of Toronto owns the event-driven dataflow patent family (7 filings) and licenses it exclusively to the company; foreground compiler IP is company-owned. University equity: 10% under the standardized template.' },
+      { id: 'd2', docTitle: 'Competitive Assessment', section: '§3 Alternatives', keywords: ['competitor', 'competitors', 'competition', 'market'], text: 'Incumbent NPUs optimize dense matrix throughput and hit a power wall at the edge; two research-stage neuromorphic efforts remain analog and hard to program. Torus is digital, ONNX-compatible, and silicon-proven.' },
+      { id: 'd3', docTitle: 'Financial Model v3', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'financials', 'revenue'], text: 'The $3.2M round funds 16 months to automotive qualification; the first design win is modeled to convert to an NRE + per-unit royalty worth $2.4M over the program.' },
+    ],
+  },
+  {
+    id: 's7',
+    name: 'Qform Quantum',
+    university: waterloo,
+    vertical: 'Quantum Computing',
+    tagline: 'Real-time error-correction control for fault-tolerant qubits.',
+    verified: true,
+    targetAmount: 2_800_000,
+    raisedAmount: 980_000,
+    investorCount: 512,
+    minInvestment: 100,
+    daysLeft: 33,
+    leadInvestor: 'Golden Ventures',
+    pitch: {
+      plainEnglish:
+        'Quantum computers make constant tiny errors. Qform builds the ultra-fast control system that spots and fixes those errors in real time — the missing piece between a lab qubit and a useful machine.',
+      commercialization:
+        'Every quantum hardware maker needs a decoder fast enough to keep up with error correction. Qform licenses its FPGA decoder as the control layer, with two hardware partners in paid integration.',
+      labProof:
+        'Sub-microsecond surface-code decoding sustained below the fault-tolerance threshold — published in Science (2025) and reproduced on a partner\'s superconducting device at the Institute for Quantum Computing.',
+    },
+    milestones: [
+      {
+        id: 'm1', title: 'Real-Time Decoder Demonstration', description: 'Surface-code decoding under 1µs, below threshold.', status: 'completed', date: '2025-09-22', hasVideoUpdate: true,
+        attestation: { verifierName: 'K. Nourredine', verifierOrg: 'University of Waterloo — WatCo (TTO)', role: 'tto', signedAt: '2025-09-29', keyFingerprint: '2D48·B1F0' },
+      },
+      { id: 'm2', title: 'Hardware Partner Integration', description: 'Decoder integrated into two partners\' control stacks.', status: 'in_progress', date: '2026-11-01' },
+      { id: 'm3', title: 'Logical-Qubit Lifetime Extension', description: 'Demonstrate logical lifetime beyond physical, on-device.', status: 'upcoming', date: '2027-04-15' },
+    ],
+    questions: [
+      {
+        id: 'q1', authorName: 'H. Weiss', role: 'investor', date: '2026-07-05', upvotes: 8,
+        body: 'Is this locked to superconducting qubits, or does the decoder generalize to other modalities?',
+        answers: [
+          { id: 'a1', authorName: 'Dr. A. Singh · Founder', role: 'founder', date: '2026-07-06', body: 'The decoder is modality-agnostic — it consumes a syndrome stream and returns corrections. One integration partner is superconducting, the other is neutral-atom, and the same core runs for both with different front-end timing.' },
+        ],
+      },
+    ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'License Agreement', section: '§2 IP', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'Waterloo owns the low-latency decoder-architecture patents and licenses them exclusively; the company owns its FPGA and ASIC implementations. University equity: 11% under the standardized template.' },
+      { id: 'd2', docTitle: 'Competitive Assessment', section: '§3 Alternatives', keywords: ['competitor', 'competitors', 'competition', 'market'], text: 'Software decoders run offline and cannot close the real-time loop; in-house hardware efforts at large vendors are captive. Qform is the only vendor-neutral, sub-microsecond decoder available to integrate.' },
+      { id: 'd3', docTitle: 'Financial Model v2', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'financials', 'revenue'], text: 'The $2.8M raise funds 15 months to an on-device logical-lifetime result; integration agreements convert to per-system license fees modeled at $1.8M ARR by 2028.' },
+    ],
+  },
+  {
+    id: 's8',
+    name: 'Tropos Carbon',
+    university: nus,
+    vertical: 'Climate Tech',
+    tagline: 'Electrochemical ocean carbon capture at container scale.',
+    verified: true,
+    targetAmount: 2_100_000,
+    raisedAmount: 1_260_000,
+    investorCount: 918,
+    minInvestment: 100,
+    daysLeft: 21,
+    leadInvestor: 'Wavemaker Partners',
+    pitch: {
+      plainEnglish:
+        'The ocean already absorbs huge amounts of CO₂. Tropos runs seawater through an electrochemical cell that pulls the carbon out as a stable mineral, then returns the water ready to absorb more — carbon removal that rides on nature\'s biggest pump.',
+      commercialization:
+        'Corporates need durable, measurable carbon removal for net-zero commitments. Tropos sells removal credits from containerized units co-located with coastal desalination and port infrastructure, with two pre-purchase agreements signed.',
+      labProof:
+        'A pilot cell removed CO₂ at under US$180/tonne with >0.9 mole efficiency and verified permanence — results validated by the NUS Centre for Nature-based Climate Solutions.',
+    },
+    milestones: [
+      {
+        id: 'm1', title: 'Pilot Cell — Efficiency & Permanence', description: 'Sub-$180/t removal at pilot scale, permanence verified.', status: 'completed', date: '2025-10-09', hasVideoUpdate: true,
+        attestation: { verifierName: 'Prof. L. Rahman', verifierOrg: 'NUS — Industry Liaison Office (TTO)', role: 'tto', signedAt: '2025-10-16', keyFingerprint: '6C21·9D3B' },
+      },
+      { id: 'm2', title: 'Container Unit Field Deployment', description: 'First 1,000 t/yr unit installed at a partner port.', status: 'in_progress', date: '2026-12-01' },
+      { id: 'm3', title: 'Third-Party Credit Certification', description: 'Removal methodology certified by an independent registry.', status: 'upcoming', date: '2027-03-31' },
+    ],
+    questions: [
+      {
+        id: 'q1', authorName: 'M. Halimah', role: 'investor', date: '2026-07-02', upvotes: 15,
+        body: 'How do you prove permanence to a credit buyer — what stops the captured carbon from re-releasing?',
+        answers: [
+          { id: 'a1', authorName: 'Dr. W. Tan · Founder', role: 'founder', date: '2026-07-03', body: 'The carbon leaves as solid carbonate mineral, not dissolved gas, so re-release isn\'t a pathway. Permanence is >10,000 years by geochemistry, and each batch is assayed and logged for the registry\'s MRV requirements.' },
+        ],
+      },
+    ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'License Agreement', section: '§2 IP', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'NUS owns the electrochemical cell and mineralization patents and licenses them exclusively; the company owns its stack and controls IP. University equity: 12% under the standardized template.' },
+      { id: 'd2', docTitle: 'Offtake Summary', section: '§3 Demand', keywords: ['revenue', 'offtake', 'credits', 'customers', 'market'], text: 'Two corporate pre-purchase agreements cover 24,000 tonnes over three years at an average $210/t. Pipeline of coastal port sites supports 8 units by 2028.' },
+      { id: 'd3', docTitle: 'Financial Model v2', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'financials'], text: 'The $2.1M raise funds 13 months through field deployment and certification; certified credits unlock the signed offtakes worth $5.0M.' },
+    ],
+  },
+  {
+    id: 's9',
+    name: 'Helios Grid',
+    university: ntu,
+    vertical: 'Climate Tech',
+    tagline: 'Perovskite–silicon tandem cells that break the 30% efficiency ceiling.',
+    verified: true,
+    targetAmount: 2_600_000,
+    raisedAmount: 730_000,
+    investorCount: 389,
+    minInvestment: 100,
+    daysLeft: 39,
+    leadInvestor: 'Vertex Ventures SE Asia',
+    pitch: {
+      plainEnglish:
+        'Ordinary solar panels waste most of the sunlight that hits them. Helios stacks a thin perovskite layer on top of a normal silicon cell so the two capture different colours of light together — more power from the same panel.',
+      commercialization:
+        'Panel makers want higher efficiency without rebuilding their factories. Helios licenses a drop-in perovskite top-cell process, with a pilot line running at a Southeast Asian module manufacturer.',
+      labProof:
+        'A 31.2% certified tandem efficiency with a 1,000-hour stability result under damp-heat testing — verified by the NTU-affiliated Energy Research Institute and an accredited PV test lab.',
+    },
+    milestones: [
+      {
+        id: 'm1', title: 'Certified Tandem Efficiency', description: '31.2% cell efficiency, independently certified.', status: 'completed', date: '2025-12-03', hasVideoUpdate: true,
+        attestation: { verifierName: 'Prof. S. Kumar', verifierOrg: 'NTU — Innovation & Enterprise (TTO)', role: 'tto', signedAt: '2025-12-10', keyFingerprint: '4B90·77AE' },
+      },
+      { id: 'm2', title: 'Pilot Line Yield', description: '>90% yield on 210mm wafers at pilot manufacturer.', status: 'in_progress', date: '2026-11-20' },
+      { id: 'm3', title: 'Field Reliability (IEC 61215)', description: 'Full IEC module certification on deployed strings.', status: 'upcoming', date: '2027-07-01' },
+    ],
+    questions: [
+      {
+        id: 'q1', authorName: 'R. Prakash', role: 'investor', date: '2026-07-07', upvotes: 10,
+        body: 'Perovskite stability has always been the killer. What\'s different about your encapsulation?',
+        answers: [
+          { id: 'a1', authorName: 'Dr. J. Lim · Founder', role: 'founder', date: '2026-07-08', body: 'We moved to an all-inorganic top cell and a glass-glass edge seal — the 1,000-hour damp-heat result held above 95% of initial power, which is the IEC durability bar. Field strings go in this quarter to confirm outdoors.' },
+        ],
+      },
+    ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'License Agreement', section: '§2 IP', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'NTU owns the tandem interface and encapsulation patents and licenses them exclusively; process recipes are company foreground IP. University equity: 13% under the standardized template.' },
+      { id: 'd2', docTitle: 'Competitive Assessment', section: '§3 Alternatives', keywords: ['competitor', 'competitors', 'competition', 'market'], text: 'Two Western perovskite startups target greenfield lines; Helios is a drop-in top-cell for existing silicon capacity, cutting adoption cost. Stability data now matches the field-reliability bar competitors miss.' },
+      { id: 'd3', docTitle: 'Financial Model v2', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'financials', 'revenue'], text: 'The $2.6M raise funds 15 months through pilot-line yield and IEC certification; a per-watt process license is modeled at $3.1M ARR against the partner\'s 2GW capacity.' },
+    ],
+  },
+  {
+    id: 's10',
+    name: 'Cygnus Bio',
+    university: melbourne,
+    vertical: 'MedTech',
+    tagline: 'Targeted radioligand therapy for treatment-resistant cancers.',
+    verified: true,
+    targetAmount: 3_500_000,
+    raisedAmount: 2_040_000,
+    investorCount: 1_120,
+    minInvestment: 100,
+    daysLeft: 15,
+    leadInvestor: 'Brandon Capital',
+    pitch: {
+      plainEnglish:
+        'Cygnus builds guided missiles for cancer: a targeting molecule that seeks out tumour cells carries a tiny radioactive payload directly to them, sparing healthy tissue that chemotherapy would damage.',
+      commercialization:
+        'Radioligand therapy is one of oncology\'s fastest-growing modalities. Cygnus is advancing a lead candidate for a solid tumour with few options, with orphan-drug designation and a hospital manufacturing partner.',
+      labProof:
+        'Complete tumour regression in 8 of 10 patient-derived xenograft models with no dose-limiting toxicity — data reviewed by the Peter Doherty Institute and the University of Melbourne\'s medical faculty.',
+    },
+    milestones: [
+      {
+        id: 'm1', title: 'Preclinical Efficacy & Safety', description: 'Regression in 8/10 PDX models; clean toxicology.', status: 'completed', date: '2025-07-30', hasVideoUpdate: false,
+        attestation: { verifierName: 'Prof. A. Nguyen', verifierOrg: 'University of Melbourne — Business & Innovation (TTO)', role: 'tto', signedAt: '2025-08-06', keyFingerprint: '1E55·C0A2' },
+      },
+      { id: 'm2', title: 'IND-Enabling GMP Batch', description: 'GMP radiolabelled batch released for first-in-human.', status: 'in_progress', date: '2026-10-30' },
+      { id: 'm3', title: 'Phase I First-in-Human', description: 'Dose-escalation trial opens at two Australian sites.', status: 'upcoming', date: '2027-05-15' },
+    ],
+    questions: [
+      {
+        id: 'q1', authorName: 'S. Whitfield', role: 'investor', date: '2026-07-01', upvotes: 14,
+        body: 'Radioligand supply chains are notoriously hard — how do you handle isotope sourcing and short half-lives?',
+        answers: [
+          { id: 'a1', authorName: 'Dr. E. Osei · Reviewer', role: 'investor', date: '2026-07-02', body: 'The isotope is generator-produced on-site at the hospital partner, so half-life logistics stay inside one building. That partnership is the moat as much as the ligand — it\'s why the GMP batch timeline is credible.' },
+        ],
+      },
+    ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'License Agreement', section: '§2 IP', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'The University of Melbourne owns the targeting-ligand composition-of-matter patents and licenses them exclusively; the company owns formulation and process IP. University equity: 14% under the standardized template.' },
+      { id: 'd2', docTitle: 'Regulatory Summary', section: '§3 Path', keywords: ['regulatory', 'fda', 'tga', 'trial', 'orphan'], text: 'Orphan-drug designation granted; pre-IND feedback supports a streamlined Phase I/II. Manufacturing at the hospital partner de-risks the radiochemistry that sinks most radioligand programs.' },
+      { id: 'd3', docTitle: 'Financial Model v2', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'financials', 'revenue'], text: 'The $3.5M raise funds 14 months through the GMP batch and trial opening; positive Phase I data is the value-inflection point modeled for a licensing deal or Series B.' },
+    ],
+  },
+  {
+    id: 's11',
+    name: 'Silex Quantum',
+    university: unsw,
+    vertical: 'Quantum Computing',
+    tagline: 'Silicon spin qubits built on the CMOS fabs the world already has.',
+    verified: true,
+    targetAmount: 3_000_000,
+    raisedAmount: 1_650_000,
+    investorCount: 742,
+    minInvestment: 100,
+    daysLeft: 24,
+    leadInvestor: 'Main Sequence Ventures',
+    pitch: {
+      plainEnglish:
+        'Most quantum computers need exotic hardware. Silex builds qubits out of silicon — the same material as ordinary computer chips — so they can be made in existing chip factories and cooled with standard equipment, the cheapest path to scale.',
+      commercialization:
+        'Silicon\'s manufacturability is the industry\'s scaling bet. Silex is developing a spin-qubit process portable to commercial CMOS foundries, with a foundry shuttle run booked and a control-electronics partner.',
+      labProof:
+        'Two-qubit gate fidelity above 99.5% in an isotopically purified silicon device that survives above 1 kelvin — reported in Nature (2025) and reproduced on a second wafer lot at UNSW.',
+    },
+    milestones: [
+      {
+        id: 'm1', title: 'High-Fidelity Two-Qubit Gate', description: '>99.5% fidelity, hot-qubit operation above 1K.', status: 'completed', date: '2025-10-27', hasVideoUpdate: true,
+        attestation: { verifierName: 'Dr. P. O’Reilly', verifierOrg: 'UNSW — Knowledge Exchange (TTO)', role: 'tto', signedAt: '2025-11-03', keyFingerprint: '7F03·5C2E' },
+      },
+      { id: 'm2', title: 'Foundry Shuttle Run', description: 'Spin-qubit process ported to a commercial CMOS shuttle.', status: 'in_progress', date: '2026-12-15' },
+      { id: 'm3', title: 'Multi-Qubit Array', description: 'Operate a 16-qubit array with shared control.', status: 'upcoming', date: '2027-08-01' },
+    ],
+    questions: [
+      {
+        id: 'q1', authorName: 'T. Andersson', role: 'investor', date: '2026-07-04', upvotes: 11,
+        body: 'Hot-qubit operation is the headline — how much does running above 1K actually change the system cost?',
+        answers: [
+          { id: 'a1', authorName: 'Dr. P. O’Reilly · Reviewer', role: 'investor', date: '2026-07-05', body: 'It changes everything downstream. Above 1K you can put classical control electronics next to the qubits and use far cheaper cryogenics, which is the difference between a dilution fridge per handful of qubits and a scalable rack.' },
+        ],
+      },
+    ],
+    dataRoom: [
+      { id: 'd1', docTitle: 'License Agreement', section: '§2 IP', keywords: ['patent', 'patents', 'license', 'ip', 'ownership', 'university'], text: 'UNSW owns the silicon spin-qubit device patents (a deep portfolio) and licenses them exclusively; the company owns its process-integration IP. University equity: 12% under the standardized template.' },
+      { id: 'd2', docTitle: 'Competitive Assessment', section: '§3 Alternatives', keywords: ['competitor', 'competitors', 'competition', 'market', 'cryogenic'], text: 'Superconducting and trapped-ion systems lead on qubit count today but scale poorly per rack; Silex trades near-term count for CMOS manufacturability and hot-qubit operation — the cheapest cryogenic footprint in the field.' },
+      { id: 'd3', docTitle: 'Financial Model v2', section: '§4 Runway', keywords: ['runway', 'burn', 'cash', 'financials', 'revenue'], text: 'The $3.0M raise funds 15 months through the foundry shuttle and a 16-qubit array; a foundry-portable process is the asset modeled for a strategic partnership with a CMOS fab.' },
     ],
   },
 ];

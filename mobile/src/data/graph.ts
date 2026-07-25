@@ -78,6 +78,45 @@ export const GRAPH_NODES: GraphNode[] = [
   { id: 'l:meiji', kind: 'lab', label: 'Meiji Superconduct Lab' },
   { id: 'l:pacific', kind: 'lab', label: 'Pacific Quantum Devices' },
   { id: 'l:helixweave', kind: 'lab', label: 'HelixWeave Bio' },
+
+  // --- Global expansion: Canada / Singapore / Australia ---
+  // Startups
+  { id: 'st:torus', kind: 'startup', label: 'Torus AI', startupId: 's6' },
+  { id: 'st:qform', kind: 'startup', label: 'Qform Quantum', startupId: 's7' },
+  { id: 'st:tropos', kind: 'startup', label: 'Tropos Carbon', startupId: 's8' },
+  { id: 'st:helios', kind: 'startup', label: 'Helios Grid', startupId: 's9' },
+  { id: 'st:cygnus', kind: 'startup', label: 'Cygnus Bio', startupId: 's10' },
+  { id: 'st:silex', kind: 'startup', label: 'Silex Quantum', startupId: 's11' },
+  // Universities
+  { id: 'u:toronto', kind: 'university', label: 'University of Toronto' },
+  { id: 'u:waterloo', kind: 'university', label: 'University of Waterloo' },
+  { id: 'u:nus', kind: 'university', label: 'NUS' },
+  { id: 'u:ntu', kind: 'university', label: 'NTU' },
+  { id: 'u:melbourne', kind: 'university', label: 'University of Melbourne' },
+  { id: 'u:unsw', kind: 'university', label: 'UNSW Sydney' },
+  // Founders
+  { id: 'f:tremblay', kind: 'founder', label: 'É. Tremblay' },
+  { id: 'f:singh', kind: 'founder', label: 'Dr. A. Singh' },
+  { id: 'f:tan', kind: 'founder', label: 'Dr. W. Tan' },
+  { id: 'f:lim', kind: 'founder', label: 'Dr. J. Lim' },
+  { id: 'f:ellery', kind: 'founder', label: 'Dr. M. Ellery' },
+  { id: 'f:novak', kind: 'founder', label: 'Prof. C. Novak' },
+  // Topics (new + shared for cross-portfolio links)
+  { id: 't:neuromorphic', kind: 'topic', label: 'Neuromorphic compute' },
+  { id: 't:siliconqubit', kind: 'topic', label: 'Silicon spin qubits' },
+  { id: 't:oceancapture', kind: 'topic', label: 'Ocean carbon capture' },
+  { id: 't:perovskite', kind: 'topic', label: 'Perovskite photovoltaics' },
+  { id: 't:radioligand', kind: 'topic', label: 'Targeted radioligand therapy' },
+  // Papers & patents
+  { id: 'p:isscc-torus', kind: 'paper', label: 'ISSCC \'25 — 41 TOPS/W' },
+  { id: 'p:science-qform', kind: 'paper', label: 'Science \'25 — sub-µs decoding' },
+  { id: 'p:nature-silex', kind: 'paper', label: 'Nature \'25 — hot silicon qubit' },
+  { id: 'ip:torus', kind: 'patent', label: 'Event-driven dataflow family' },
+  { id: 'ip:helios', kind: 'patent', label: 'Tandem interface + encapsulation' },
+  { id: 'ip:silex', kind: 'patent', label: 'Silicon spin-qubit device family' },
+  // Competing labs
+  { id: 'l:borealis', kind: 'lab', label: 'Borealis Neuromorphic' },
+  { id: 'l:coralcap', kind: 'lab', label: 'CoralCapture Labs' },
 ];
 
 export const GRAPH_EDGES: GraphEdge[] = [
@@ -112,6 +151,40 @@ export const GRAPH_EDGES: GraphEdge[] = [
   { from: 'l:meiji', to: 't:hts', kind: 'competes on' },
   { from: 'l:pacific', to: 't:qec', kind: 'competes on' },
   { from: 'l:helixweave', to: 't:scaffold', kind: 'competes on' },
+
+  // --- Global expansion: Canada / Singapore / Australia ---
+  // Spinout lineage
+  { from: 'st:torus', to: 'u:toronto', kind: 'spun out of' },
+  { from: 'st:qform', to: 'u:waterloo', kind: 'spun out of' },
+  { from: 'st:tropos', to: 'u:nus', kind: 'spun out of' },
+  { from: 'st:helios', to: 'u:ntu', kind: 'spun out of' },
+  { from: 'st:cygnus', to: 'u:melbourne', kind: 'spun out of' },
+  { from: 'st:silex', to: 'u:unsw', kind: 'spun out of' },
+  // Founders
+  { from: 'st:torus', to: 'f:tremblay', kind: 'founded by' },
+  { from: 'st:qform', to: 'f:singh', kind: 'founded by' },
+  { from: 'st:tropos', to: 'f:tan', kind: 'founded by' },
+  { from: 'st:helios', to: 'f:lim', kind: 'founded by' },
+  { from: 'st:cygnus', to: 'f:ellery', kind: 'founded by' },
+  { from: 'st:silex', to: 'f:novak', kind: 'founded by' },
+  // Papers & patents
+  { from: 'f:tremblay', to: 'p:isscc-torus', kind: 'published' },
+  { from: 'st:torus', to: 'ip:torus', kind: 'protected by' },
+  { from: 'f:singh', to: 'p:science-qform', kind: 'published' },
+  { from: 'st:helios', to: 'ip:helios', kind: 'protected by' },
+  { from: 'f:novak', to: 'p:nature-silex', kind: 'published' },
+  { from: 'st:silex', to: 'ip:silex', kind: 'protected by' },
+  // Topics — new spaces plus deliberate cross-links into the existing portfolio
+  { from: 'st:torus', to: 't:neuromorphic', kind: 'works on' },
+  { from: 'st:qform', to: 't:qec', kind: 'works on' },      // shared with Qubit Foundry
+  { from: 'st:tropos', to: 't:oceancapture', kind: 'works on' },
+  { from: 'st:helios', to: 't:perovskite', kind: 'works on' },
+  { from: 'st:cygnus', to: 't:radioligand', kind: 'works on' },
+  { from: 'st:silex', to: 't:siliconqubit', kind: 'works on' },
+  { from: 'st:silex', to: 't:cryo', kind: 'works on' },     // shared with Helion + Qubit
+  // Competing labs
+  { from: 'l:borealis', to: 't:neuromorphic', kind: 'competes on' },
+  { from: 'l:coralcap', to: 't:oceancapture', kind: 'competes on' },
 ];
 
 /** All nodes directly connected to `nodeId`, with the linking edge kind. */

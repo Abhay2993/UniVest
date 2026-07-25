@@ -179,5 +179,41 @@ BEGIN
     END;
     ASSERT v_blocked, 'non-positive target_amount was not rejected';
 
+    ------------------------------------------------------------------
+    -- 11. Angel investors: accreditation, early-access window,
+    --     lead uniqueness + carry bound
+    ------------------------------------------------------------------
+    -- The seeded angel is accredited and active.
+    PERFORM 1 FROM angel_profiles p JOIN users u ON u.id = p.user_id
+      WHERE p.user_id = '00000000-0000-0000-0000-000000000001'
+        AND p.status = 'active' AND u.accreditation <> 'none';
+    ASSERT FOUND, 'seeded angel is not active/accredited';
+
+    -- The tto_review deal is inside its angel-only early-access window.
+    PERFORM 1 FROM angel_deals
+      WHERE campaign_id = '00000000-0000-0000-0000-0000000000b7'
+        AND opens_to_angels_at <= now() AND public_opens_at > now();
+    ASSERT FOUND, 'angel early-access window is not open on the seeded deal';
+
+    -- One lead per (campaign, angel): a second lead by the same angel is rejected.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO spv_leads (campaign_id, angel_user_id, committed_amount)
+        VALUES ('00000000-0000-0000-0000-0000000000b7','00000000-0000-0000-0000-000000000001', 10000);
+    EXCEPTION WHEN unique_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'duplicate (campaign, angel) lead was not rejected';
+
+    -- Carry is bounded to [0, 30].
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO spv_leads (campaign_id, angel_user_id, committed_amount, carry_pct)
+        VALUES ('00000000-0000-0000-0000-0000000000ac','00000000-0000-0000-0000-000000000001', 10000, 45);
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'out-of-range carry_pct was not rejected';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

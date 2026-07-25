@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DbModule } from './db/db.module';
 import { AdminModule } from './admin/admin.module';
+import { AngelModule } from './angel/angel.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { DiligenceModule } from './diligence/diligence.module';
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     DiligenceModule,
     PassportModule,
     PlatformModule,
+    AngelModule,
   ],
 })
 export class AppModule {}
