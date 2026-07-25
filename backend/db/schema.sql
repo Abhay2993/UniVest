@@ -606,6 +606,23 @@ CREATE TABLE secondary_trades (
     CONSTRAINT chk_no_self_trade CHECK (buyer_id IS NULL OR buyer_id <> seller_id)
 );
 
+-- Standing tender offers: a buyer posts a resting bid to buy up to `max_units`
+-- of an SPV at `price_per_unit`, which sellers can hit — the demand side of the
+-- investor-facing secondary market.
+CREATE TABLE tender_offers (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    spv_id         UUID          NOT NULL REFERENCES spvs(id),
+    buyer_id       UUID          NOT NULL REFERENCES users(id),
+    price_per_unit NUMERIC(18,6) NOT NULL CHECK (price_per_unit > 0),
+    max_units      NUMERIC(24,6) NOT NULL CHECK (max_units > 0),
+    filled_units   NUMERIC(24,6) NOT NULL DEFAULT 0 CHECK (filled_units >= 0),
+    status         trade_status  NOT NULL DEFAULT 'listed',
+    created_at     TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    expires_at     TIMESTAMPTZ,
+    CONSTRAINT chk_tender_fill CHECK (filled_units <= max_units)
+);
+CREATE INDEX idx_tender_offers_spv ON tender_offers(spv_id) WHERE status = 'listed';
+
 -- ----------------------------------------------------------------------------
 -- Batch auctions (Liquidity Engine v2)
 -- Thin continuous order books gap wildly; instead, orders accumulate inside a
@@ -1034,6 +1051,16 @@ CREATE POLICY trades_list ON secondary_trades FOR INSERT
     WITH CHECK (seller_id = app_user_id() OR app_is_admin());
 CREATE POLICY trades_update ON secondary_trades FOR UPDATE
     USING (seller_id = app_user_id() OR buyer_id = app_user_id() OR app_is_admin());
+
+-- Tender offers: resting bids are public to read; a buyer posts and manages
+-- only their own.
+ALTER TABLE tender_offers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenders_browse ON tender_offers FOR SELECT
+    USING (status = 'listed' OR buyer_id = app_user_id() OR app_is_admin());
+CREATE POLICY tenders_own ON tender_offers FOR INSERT
+    WITH CHECK (buyer_id = app_user_id() OR app_is_admin());
+CREATE POLICY tenders_update ON tender_offers FOR UPDATE
+    USING (buyer_id = app_user_id() OR app_is_admin());
 
 CREATE POLICY mandates_own ON auto_invest_mandates
     USING (user_id = app_user_id() OR app_is_admin())

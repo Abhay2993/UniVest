@@ -215,5 +215,36 @@ BEGIN
     END;
     ASSERT v_blocked, 'out-of-range carry_pct was not rejected';
 
+    ------------------------------------------------------------------
+    -- 12. Secondary market: generated total_price, no self-trade,
+    --     tender fill bound
+    ------------------------------------------------------------------
+    -- The seeded listing's total_price is generated (100 × 13.50).
+    SELECT total_price INTO v_raised FROM secondary_trades
+     WHERE id = '00000000-0000-0000-0000-0000000000f4';
+    ASSERT v_raised = 1350.00, 'secondary total_price mis-generated: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- A buyer cannot be the seller.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO secondary_trades (spv_id, seller_id, buyer_id, units, price_per_unit)
+        VALUES ('00000000-0000-0000-0000-0000000000af',
+                '00000000-0000-0000-0000-000000000001',
+                '00000000-0000-0000-0000-000000000001', 10, 13.00);
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'self-trade was not rejected';
+
+    -- A tender cannot be filled beyond its cap.
+    v_blocked := FALSE;
+    BEGIN
+        UPDATE tender_offers SET filled_units = max_units + 1
+         WHERE id = '00000000-0000-0000-0000-0000000000f5';
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'tender over-fill was not rejected';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

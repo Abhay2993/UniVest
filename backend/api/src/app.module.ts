@@ -10,6 +10,7 @@ import { ModelsModule } from './models/models.module';
 import { OfferingsModule } from './offerings/offerings.module';
 import { PassportModule } from './passport/passport.module';
 import { PlatformModule } from './platform/platform.module';
+import { SecondaryModule } from './secondary/secondary.module';
 import { UniversityModule } from './university/university.module';
 import { UsersModule } from './users/users.module';
 
@@ -28,6 +29,7 @@ import { UsersModule } from './users/users.module';
     PassportModule,
     PlatformModule,
     AngelModule,
+    SecondaryModule,
   ],
 })
 export class AppModule {}

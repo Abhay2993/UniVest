@@ -15,6 +15,7 @@ import { useThemedStyles } from '../theme/ThemeContext';
 import { clearUniformPrice } from '../utils/finance';
 import { liquidityMetrics } from '../utils/quant';
 import { ChartPoint, LineChart } from '../components/LineChart';
+import { SecondaryMarketScreen } from './SecondaryMarketScreen';
 
 const QUIET_EASE = LayoutAnimation.create(
   240,
@@ -32,6 +33,7 @@ const PRICE_PRESETS = [12.0, 12.25, 12.5, 12.75];
  */
 export function MarketsScreen() {
   const s = useThemedStyles(makeStyles);
+  const [secondaryOpen, setSecondaryOpen] = useState(false);
   const [myOrders, setMyOrders] = useState<AuctionOrderInput[]>([]);
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [units, setUnits] = useState(50);
@@ -75,6 +77,8 @@ export function MarketsScreen() {
     setMyOrders((cur) => cur.filter((_, i) => i !== index));
   };
 
+  if (secondaryOpen) return <SecondaryMarketScreen onClose={() => setSecondaryOpen(false)} />;
+
   return (
     <ScrollView style={s.screen} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
       <View style={s.hero}>
@@ -85,6 +89,26 @@ export function MarketsScreen() {
           marks than a thin continuous book.
         </Text>
       </View>
+
+      <Pressable
+        style={s.secondaryCard}
+        onPress={() => {
+          Haptics.selectionAsync().catch(() => {});
+          setSecondaryOpen(true);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Open the secondary market"
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={s.secondaryOverline}>SECONDARY MARKET</Text>
+          <Text style={s.secondaryTitle}>List &amp; trade your holdings</Text>
+          <Text style={s.secondaryHint}>
+            Sell units, hit a resting bid, or buy from the ask — an order book on top of your
+            portfolio
+          </Text>
+        </View>
+        <Text style={s.secondaryArrow}>→</Text>
+      </Pressable>
 
       {/* Active window */}
       <View style={s.card}>
@@ -284,6 +308,22 @@ const makeStyles = (c: Palette) => {
       marginTop: space.sm,
       maxWidth: 320,
     },
+    secondaryCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.navy,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.gold,
+      paddingVertical: space.md,
+      paddingHorizontal: space.lg,
+      marginHorizontal: space.md,
+      marginTop: space.md,
+    },
+    secondaryOverline: { fontFamily: font.sans, fontSize: 9, letterSpacing: 2, color: c.gold },
+    secondaryTitle: { fontFamily: font.serif, fontSize: 18, color: c.onNavy, marginTop: 2 },
+    secondaryHint: { fontFamily: font.sans, fontSize: 12, lineHeight: 17, color: c.onNavyMuted, marginTop: 3 },
+    secondaryArrow: { fontFamily: font.serif, fontSize: 22, color: c.gold, marginLeft: space.md },
 
     card: {
       backgroundColor: c.surface,

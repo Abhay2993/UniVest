@@ -86,6 +86,25 @@ framework.
   replace the thin continuous book; the `clear_auction()` SQL function and
   its TypeScript mirror pick the volume-maximizing price (plateau midpoint)
   with price-time priority fills.
+- **Investor-facing secondary market** (Markets → Secondary Market) — surfaces
+  the liquidity rails to investors: list SPV units for sale, post a resting
+  tender bid, or buy from the ask. Real backend module
+  ([`backend/api/src/secondary`](backend/api/src/secondary)): `GET
+  /secondary/holdings` (your positions and unlisted units), `POST
+  /secondary/listings` (ownership-checked — you can only list what you hold),
+  `DELETE /secondary/listings/:id`, `POST /secondary/listings/:id/buy` (matched
+  in the settlement context with a 1.5% buyer admin fee), `POST
+  /secondary/tenders` + `GET /secondary/tenders/:spvId`, and `GET
+  /secondary/book/:spvId` (best bid/ask, depth, and matched-trade price
+  history). Backed by the existing `secondary_trades` plus a new `tender_offers`
+  table (RLS-scoped: resting bids are public, a buyer manages only their own)
+  and three DB assertions (generated `total_price`, no self-trade, tender
+  over-fill rejected). The mobile SecondaryMarketScreen shows the order book
+  (best bid/ask/mid/spread), a list-for-sale flow with live seller proceeds, a
+  buy action with the fee broken out, and a per-SPV price-history chart —
+  powered by the pure, unit-tested [`secondary.ts`](mobile/src/utils/secondary.ts)
+  (5 tests). Prices render at two-decimal precision via a currency-aware
+  `formatMoneyPrecise`.
 - **Auto-Invest DCA** — a monthly budget spread across qualifying deals with
   vertical filters and verified-lead matching (`auto_invest_mandates` with
   `monthly_budget` mode).

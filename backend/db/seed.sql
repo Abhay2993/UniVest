@@ -228,3 +228,21 @@ INSERT INTO spv_leads (id, campaign_id, angel_user_id, committed_amount, carry_p
 VALUES ('00000000-0000-0000-0000-0000000000f3','00000000-0000-0000-0000-0000000000b7',
         '00000000-0000-0000-0000-000000000001', 50000, 20.00, 'committed')
 ON CONFLICT DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- Secondary market: a second holder on the Vasca SPV, one open listing (Alice
+-- selling), and a resting tender (Bob bidding) — the two sides of the book.
+-- ----------------------------------------------------------------------------
+INSERT INTO spv_holdings (spv_id, user_id, units, cost_basis)
+VALUES ('00000000-0000-0000-0000-0000000000af','00000000-0000-0000-0000-000000000002',180,1980)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO secondary_trades (id, spv_id, seller_id, units, price_per_unit, currency_code)
+VALUES ('00000000-0000-0000-0000-0000000000f4','00000000-0000-0000-0000-0000000000af',
+        '00000000-0000-0000-0000-000000000001', 100, 13.50, 'USD')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO tender_offers (id, spv_id, buyer_id, price_per_unit, max_units)
+VALUES ('00000000-0000-0000-0000-0000000000f5','00000000-0000-0000-0000-0000000000af',
+        '00000000-0000-0000-0000-000000000002', 12.75, 150)
+ON CONFLICT DO NOTHING;

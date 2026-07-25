@@ -46,6 +46,16 @@ export function formatMoney(amountUSD: number): string {
   }).format(Math.round(convert(amountUSD)));
 }
 
+/** "$13.55" / "20,25 €" — two-decimal precision for per-unit prices and fees. */
+export function formatMoneyPrecise(amountUSD: number): string {
+  return new Intl.NumberFormat(active.locale, {
+    style: 'currency',
+    currency: active.code,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(convert(amountUSD));
+}
+
 /** "$1.87M" / "€1.72M" — compact form for dense card layouts. */
 export function formatMoneyCompact(amountUSD: number): string {
   const v = convert(amountUSD);
