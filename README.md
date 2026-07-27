@@ -66,6 +66,22 @@ framework.
   verification stamp (attestor name, TTO / independent-reviewer role, signing
   date, Ed25519 key fingerprint) backed by the `attestor_keys` registry and
   `milestone_attestations` table.
+- **Milestone-tranched escrow** — raised capital is not handed to the company at
+  once: it is released in tranches, **each gated on an independently attested
+  milestone**, so disbursement tracks verified science. Capital still held is
+  protected in escrow; a failed milestone's tranche can be refunded to investors.
+  The deal page's **Milestone Escrow** card shows the release schedule, a
+  released-vs-protected bar, and per-tranche status (Released / In escrow /
+  Refunded) derived from each milestone's attestation state. Backend:
+  `GET /api/v1/escrow/:campaignId` returns the schedule + roll-up (released vs
+  held vs refunded against the campaign envelope); `POST /escrow/tranches/:id/release`
+  and `/refund` are **admin-only settlement actions**, with a database trigger
+  that **rejects any release whose milestone is not attested** — the attestation
+  layer is the disbursement gate, enforced end-to-end. The
+  `campaign_escrow_summary` view computes the split in SQL
+  ([`backend/api/src/escrow`](backend/api/src/escrow),
+  [`mobile/src/utils/escrow.ts`](mobile/src/utils/escrow.ts),
+  `escrow_tranches`).
 - **Community Diligence Q&A** — threaded public questions on every deal with
   FOUNDER / TTO / INVESTOR role badges and an ask-a-question composer
   (`deal_questions` / `deal_answers` with moderation-preserving hides).
@@ -401,9 +417,12 @@ false-precision point estimates.
 - `backend/api/test/copilot-retrieval.spec.mjs` — standalone assertions for the
   diligence copilot's grounded-retrieval layer (RAG ranking, evidence selection,
   and the decline signal for out-of-scope questions).
+- `backend/api/test/escrow.spec.mjs` — standalone assertions for the
+  milestone-tranched escrow roll-up (released vs held vs refunded, snapshot
+  handling, and attestation-gated releasability).
 - `.github/workflows/ci.yml` — on every push: mobile typecheck + tests + web
-  bundle + companion build; backend build + VC-crypto + copilot-retrieval specs;
-  schema + seed + assertions against a real PostgreSQL 16 service.
+  bundle + companion build; backend build + VC-crypto + copilot-retrieval +
+  escrow specs; schema + seed + assertions against a real PostgreSQL 16 service.
 - `mobile/.maestro/invest-happy-path.yaml` — device E2E scaffold
   (onboarding → quiz → invest → sign → cooling-off) for local/device-farm runs.
 
@@ -426,6 +445,9 @@ cd backend/api && npm install && npm run build && npm start
 # GET  /api/v1/portfolio                    · positions, commitments, tax docs (RLS)
 # POST /api/v1/copilot/ask                  · grounded RAG over the deal's evidence bundle (cited)
 # GET  /api/v1/copilot/history              · the asker's own copilot trail (RLS copilot_own)
+# GET  /api/v1/escrow/:campaignId           · milestone-tranched escrow schedule + roll-up
+# POST /api/v1/escrow/tranches/:id/release  · release a tranche (admin; DB trigger gates on attestation)
+# POST /api/v1/escrow/tranches/:id/refund   · refund a held tranche to investors (admin)
 # GET  /api/v1/auctions/active              · window + indicative clearing price
 # POST /api/v1/auctions/:id/orders          · place bid/offer
 # POST /api/v1/auctions/:id/clear           · run the uniform-price engine

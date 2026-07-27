@@ -6,6 +6,7 @@ import { AuctionsModule } from './auctions/auctions.module';
 import { CopilotModule } from './copilot/copilot.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { DiligenceModule } from './diligence/diligence.module';
+import { EscrowModule } from './escrow/escrow.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { ModelsModule } from './models/models.module';
 import { OfferingsModule } from './offerings/offerings.module';
@@ -34,6 +35,7 @@ import { UsersModule } from './users/users.module';
     SecondaryModule,
     PortfolioModule,
     CopilotModule,
+    EscrowModule,
   ],
 })
 export class AppModule {}

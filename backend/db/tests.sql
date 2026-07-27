@@ -304,5 +304,39 @@ BEGIN
      ORDER BY created_at DESC LIMIT 1;
     ASSERT v_raised = 2, 'copilot exchange did not round-trip 2 citations, got ' || COALESCE(v_raised::text, 'NULL');
 
+    ------------------------------------------------------------------
+    -- 15. Milestone-tranched escrow: schedule integrity + gated release
+    ------------------------------------------------------------------
+    -- Helion's tranches partition the whole envelope.
+    SELECT SUM(release_pct) INTO v_raised FROM escrow_tranches
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac';
+    ASSERT v_raised = 100, 'escrow tranches do not sum to 100%: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- The summary view splits released vs held against the $2.5M envelope.
+    SELECT released_amount INTO v_raised FROM campaign_escrow_summary
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac';
+    ASSERT v_raised = 750000, 'released escrow amount wrong: ' || COALESCE(v_raised::text, 'NULL');
+    SELECT held_amount INTO v_raised FROM campaign_escrow_summary
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac';
+    ASSERT v_raised = 1750000, 'held escrow amount wrong: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- Releasing a tranche whose milestone is not attested is rejected.
+    v_blocked := FALSE;
+    BEGIN
+        UPDATE escrow_tranches SET status = 'released'
+         WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac' AND position = 2;
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'escrow release of an unattested milestone was not rejected';
+
+    -- The on-close (NULL-milestone) tranche releases freely and stamps its time.
+    UPDATE escrow_tranches SET status = 'released', released_amount = 750000
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac' AND position = 3;
+    SELECT COUNT(*) INTO v_raised FROM escrow_tranches
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac'
+       AND position = 3 AND status = 'released' AND released_at IS NOT NULL;
+    ASSERT v_raised = 1, 'on-close tranche release did not stamp released_at';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

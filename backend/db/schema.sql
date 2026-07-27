@@ -322,6 +322,71 @@ CREATE TABLE attestation_credentials (
 );
 
 -- ----------------------------------------------------------------------------
+-- Milestone-tranched escrow (capital de-risked against verified progress)
+-- Raised capital is not handed to the company at once: it is released in
+-- tranches, each gated on an *attested* milestone. A tranche can only move to
+-- 'released' once its milestone carries a signed attestation (the crown-jewel
+-- Ed25519 trust layer), so disbursement tracks independently-verified science.
+-- Capital still 'held' is protected in escrow; a 'refunded' tranche returns to
+-- investors (e.g. a milestone that fails). The escrow envelope is the campaign
+-- target; each tranche's dollar figure is snapshotted at release/refund time.
+-- ----------------------------------------------------------------------------
+CREATE TYPE escrow_status AS ENUM ('held', 'released', 'refunded');
+
+CREATE TABLE escrow_tranches (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id     UUID          NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    milestone_id    UUID          REFERENCES milestones(id),        -- NULL = released on close
+    position        SMALLINT      NOT NULL,                          -- schedule order
+    label           TEXT          NOT NULL,
+    release_pct     NUMERIC(5,2)  NOT NULL CHECK (release_pct > 0 AND release_pct <= 100),
+    status          escrow_status NOT NULL DEFAULT 'held',
+    released_amount NUMERIC(18,2),                                   -- $ snapshot at release/refund
+    released_at     TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    UNIQUE (campaign_id, position)
+);
+
+-- A tranche may only be released once its gating milestone is attested; the
+-- release timestamp is stamped here. Refunds and NULL-milestone (on-close)
+-- tranches are unrestricted. Raised as check_violation so the API surfaces a
+-- clean 4xx and tests.sql can assert the guard.
+CREATE OR REPLACE FUNCTION enforce_escrow_release() RETURNS trigger AS $$
+BEGIN
+    IF NEW.status = 'released' AND OLD.status IS DISTINCT FROM 'released' THEN
+        IF NEW.milestone_id IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM milestone_attestations a
+                            WHERE a.milestone_id = NEW.milestone_id) THEN
+            RAISE EXCEPTION 'cannot release escrow tranche: milestone % is not attested', NEW.milestone_id
+                USING ERRCODE = 'check_violation';
+        END IF;
+        IF NEW.released_at IS NULL THEN NEW.released_at := now(); END IF;
+    END IF;
+    RETURN NEW;
+END $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_escrow_release
+    BEFORE UPDATE OF status ON escrow_tranches
+    FOR EACH ROW EXECUTE FUNCTION enforce_escrow_release();
+
+-- Escrow roll-up per campaign: released (to the company, against attested
+-- milestones) vs held (still protected in escrow) vs refunded, in both percent
+-- and dollars against the campaign's escrow envelope (its target).
+CREATE VIEW campaign_escrow_summary AS
+SELECT c.id AS campaign_id,
+       c.target_amount AS escrow_total,
+       COALESCE(SUM(t.release_pct) FILTER (WHERE t.status = 'released'), 0)          AS released_pct,
+       COALESCE(SUM(t.released_amount) FILTER (WHERE t.status = 'released'), 0)       AS released_amount,
+       COALESCE(SUM(t.released_amount) FILTER (WHERE t.status = 'refunded'), 0)       AS refunded_amount,
+       GREATEST(c.target_amount
+                - COALESCE(SUM(t.released_amount) FILTER (WHERE t.status IN ('released','refunded')), 0), 0) AS held_amount,
+       COUNT(*)                                        AS tranche_count,
+       COUNT(*) FILTER (WHERE t.status = 'released')   AS released_count
+  FROM campaigns c
+  JOIN escrow_tranches t ON t.campaign_id = c.id
+ GROUP BY c.id, c.target_amount;
+
+-- ----------------------------------------------------------------------------
 -- Deal Q&A (community diligence; the public discussion channel Reg CF expects)
 -- Author badges (founder / TTO / investor) derive from users.role and
 -- university_members at read time. Moderation hides rather than deletes,
@@ -1165,6 +1230,7 @@ CREATE INDEX idx_auction_orders_book   ON auction_orders (window_id, side, limit
 CREATE INDEX idx_valuations_spv        ON spv_valuations (spv_id, as_of DESC);
 CREATE INDEX idx_tax_docs_user         ON tax_documents (user_id, tax_year DESC);
 CREATE INDEX idx_dataroom_campaign     ON data_room_documents (campaign_id);
+CREATE INDEX idx_escrow_campaign       ON escrow_tranches (campaign_id, position);
 CREATE INDEX idx_copilot_user          ON copilot_exchanges (user_id, created_at DESC);
 CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcome IS NOT NULL;
 CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);

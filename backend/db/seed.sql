@@ -108,6 +108,20 @@ VALUES
    'On loss of cryoplant power the coil quenches safely: a copper stabilizer matrix absorbs the stored magnetic energy while external dump resistors shed the field in under two seconds. Three controlled quenches were run during the 48-hour validation with full telemetry.',
    ARRAY['quench','safety','cryoplant','power','fault','superconducting']);
 
+-- Milestone-tranched escrow for the Helion live campaign. The $2.5M envelope is
+-- released in three tranches: 30% on the (attested) Prototype Validation is
+-- released; 40% on Pilot Manufacturing (in progress, unattested) and the final
+-- 30% remain protected in escrow until their milestones are independently
+-- attested. Released $ is snapshotted at 30% of the envelope (750,000).
+INSERT INTO escrow_tranches (campaign_id, milestone_id, position, label, release_pct, status, released_amount, released_at)
+VALUES
+  ('00000000-0000-0000-0000-0000000000ac','00000000-0000-0000-0000-0000000000b1',1,
+   'Prototype Validation', 30.00, 'released', 750000, now() - interval '150 days'),
+  ('00000000-0000-0000-0000-0000000000ac','00000000-0000-0000-0000-0000000000b2',2,
+   'Pilot Manufacturing Line', 40.00, 'held', NULL, NULL),
+  ('00000000-0000-0000-0000-0000000000ac', NULL, 3,
+   'Utility-Scale Order Book', 30.00, 'held', NULL, NULL);
+
 -- ----------------------------------------------------------------------------
 -- Closed campaign (Vasca) → SPV with holdings, valuations, tax doc, auction
 -- ----------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import { useTheme, useThemedStyles } from '../theme/ThemeContext';
 import { formatMoneyCompact, formatPct, formatMoney } from '../utils/format';
 import { BookmarkButton } from '../components/BookmarkButton';
 import { CopilotCard } from '../components/CopilotCard';
+import { EscrowCard } from '../components/EscrowCard';
 import { FeeTransparencyCard } from '../components/FeeTransparencyCard';
 import { InvestPanel } from '../components/InvestPanel';
 import { MilestoneTracker } from '../components/MilestoneTracker';
@@ -151,6 +152,11 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
         {/* Visual Milestone Tracker (slip-aware) */}
         <View style={s.trackerWrap}>
           <MilestoneTracker milestones={startup.milestones} startup={startup} />
+        </View>
+
+        {/* Milestone-tranched escrow — capital de-risked against attested progress */}
+        <View style={s.trackerWrap}>
+          <EscrowCard startup={startup} />
         </View>
 
         {/* Community Diligence Q&A */}
