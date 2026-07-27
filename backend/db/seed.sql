@@ -91,6 +91,23 @@ VALUES ('00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000
         'The coil quenches safely by design: a copper stabilizer matrix absorbs the stored energy while dump resistors shed the field in under two seconds.')
 ON CONFLICT DO NOTHING;
 
+-- Data room for the Helion live campaign — the grounding corpus the diligence
+-- copilot retrieves and cites. Excerpts mirror the mobile data-room snippets.
+INSERT INTO data_room_documents (campaign_id, title, kind, section, excerpt, keywords)
+VALUES
+  ('00000000-0000-0000-0000-0000000000ac','Exclusive License Agreement','license','§2.1 Field of Use',
+   'MIT grants the company an exclusive, worldwide, royalty-bearing license to the 11-patent HTS coil family (incl. the substrate and buffer-stack claims) for all energy applications. The university holds 12% equity under USIT terms; the license survives change of control.',
+   ARRAY['patent','patents','license','ip','ownership','university','equity']),
+  ('00000000-0000-0000-0000-0000000000ac','Market & Competition Memo','technical','§3 Competitive Landscape',
+   'Direct competitors are Commonwealth-adjacent magnet suppliers and two Japanese tape manufacturers; both depend on rare-earth REBCO tape. Helion''s rare-earth-free process undercuts tape cost by ~60%, and no competitor has demonstrated >15T without rare-earth materials.',
+   ARRAY['competitor','competitors','competition','market','rivals']),
+  ('00000000-0000-0000-0000-0000000000ac','Financial Model v7','financials','§5 Use of Funds & Runway',
+   'The $2.5M raise extends runway to 22 months at a $95K/month burn, funding the 10-coil pilot line. Two signed pilot contracts contribute $1.4M of milestone revenue across 2026–27; break-even is modeled at 30 production coils/year.',
+   ARRAY['runway','burn','cash','funds','financials','revenue']),
+  ('00000000-0000-0000-0000-0000000000ac','Technical Annex — Quench Protection','technical','§4 Fault Modes',
+   'On loss of cryoplant power the coil quenches safely: a copper stabilizer matrix absorbs the stored magnetic energy while external dump resistors shed the field in under two seconds. Three controlled quenches were run during the 48-hour validation with full telemetry.',
+   ARRAY['quench','safety','cryoplant','power','fault','superconducting']);
+
 -- ----------------------------------------------------------------------------
 -- Closed campaign (Vasca) → SPV with holdings, valuations, tax doc, auction
 -- ----------------------------------------------------------------------------

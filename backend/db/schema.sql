@@ -829,6 +829,12 @@ CREATE TABLE data_room_documents (
     campaign_id  UUID        NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
     title        TEXT        NOT NULL,                          -- "Exclusive License Agreement"
     kind         TEXT        NOT NULL,                          -- 'license' | 'financials' | 'technical' | ...
+    section      TEXT,                                          -- "§2.1 Field of Use"
+    -- Indexed extract the copilot retrieves and cites. The full document lives
+    -- at storage_url; this is the grounding text the RAG layer answers from.
+    excerpt      TEXT,
+    -- Retrieval index terms (lexical boost during ranking).
+    keywords     TEXT[]      NOT NULL DEFAULT '{}',
     storage_url  TEXT,
     sha256       BYTEA,
     uploaded_at  TIMESTAMPTZ NOT NULL DEFAULT now()

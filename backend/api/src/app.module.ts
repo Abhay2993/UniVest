@@ -3,6 +3,7 @@ import { DbModule } from './db/db.module';
 import { AdminModule } from './admin/admin.module';
 import { AngelModule } from './angel/angel.module';
 import { AuctionsModule } from './auctions/auctions.module';
+import { CopilotModule } from './copilot/copilot.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { DiligenceModule } from './diligence/diligence.module';
 import { InvestmentsModule } from './investments/investments.module';
@@ -32,6 +33,7 @@ import { UsersModule } from './users/users.module';
     AngelModule,
     SecondaryModule,
     PortfolioModule,
+    CopilotModule,
   ],
 })
 export class AppModule {}

@@ -275,5 +275,34 @@ BEGIN
     END;
     ASSERT v_blocked, 'disposal-before-acquisition was not rejected';
 
+    ------------------------------------------------------------------
+    -- 14. Diligence copilot: data-room grounding corpus + cited exchange
+    ------------------------------------------------------------------
+    -- The Helion live campaign has an indexed data room to answer from.
+    SELECT COUNT(*) INTO v_raised FROM data_room_documents
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac'
+       AND excerpt IS NOT NULL AND array_length(keywords, 1) > 0;
+    ASSERT v_raised = 4, 'expected 4 grounded data-room docs for Helion, got ' || COALESCE(v_raised::text, 'NULL');
+
+    -- Keyword index is queryable (lexical retrieval boost source).
+    SELECT COUNT(*) INTO v_raised FROM data_room_documents
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac'
+       AND 'patent' = ANY (keywords);
+    ASSERT v_raised = 1, 'expected 1 patent-tagged data-room doc, got ' || COALESCE(v_raised::text, 'NULL');
+
+    -- A copilot exchange persists its answer with cited sources (JSONB).
+    INSERT INTO copilot_exchanges (user_id, campaign_id, question, answer, citations, model)
+    VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-0000000000ac',
+            'What is the patent situation?',
+            'From the data room: MIT grants an exclusive license to the 11-patent HTS coil family.',
+            '[{"kind":"document","ref":"Exclusive License Agreement","section":"§2.1 Field of Use"},
+              {"kind":"graph","ref":"Knowledge Graph","section":"Helion → MIT"}]'::jsonb,
+            'grounded-retrieval/v1');
+    SELECT jsonb_array_length(citations) INTO v_raised FROM copilot_exchanges
+     WHERE user_id = '00000000-0000-0000-0000-000000000001'
+       AND campaign_id = '00000000-0000-0000-0000-0000000000ac'
+     ORDER BY created_at DESC LIMIT 1;
+    ASSERT v_raised = 2, 'copilot exchange did not round-trip 2 citations, got ' || COALESCE(v_raised::text, 'NULL');
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

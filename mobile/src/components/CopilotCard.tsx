@@ -11,7 +11,12 @@ import {
 import { Startup } from '../types';
 import { font, Palette, radius, space, typeStyles } from '../theme/tokens';
 import { useTheme, useThemedStyles } from '../theme/ThemeContext';
-import { answerFromDataRoom, CopilotAnswer, SUGGESTED_QUESTIONS } from '../services/copilot';
+import {
+  answerFromEvidence,
+  CopilotAnswer,
+  kindLabel,
+  suggestedQuestions,
+} from '../services/copilot';
 
 const QUIET_EASE = LayoutAnimation.create(
   240,
@@ -36,13 +41,15 @@ export function CopilotCard({ startup }: { startup: Startup }) {
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [draft, setDraft] = useState('');
 
+  const starters = suggestedQuestions(startup);
+
   const ask = (question: string) => {
     const q = question.trim();
     if (q.length < 5) return;
     LayoutAnimation.configureNext(QUIET_EASE);
     setExchanges((cur) => [
       ...cur,
-      { id: `x-${Date.now()}`, question: q, answer: answerFromDataRoom(startup, q) },
+      { id: `x-${Date.now()}`, question: q, answer: answerFromEvidence(startup, q) },
     ]);
     setDraft('');
   };
@@ -51,12 +58,12 @@ export function CopilotCard({ startup }: { startup: Startup }) {
     <View style={s.card}>
       <Text style={s.overline}>Diligence Copilot</Text>
       <Text style={s.hint}>
-        Ask the data room — {startup.dataRoom.length} indexed documents. Answers cite their
-        sources; nothing is invented beyond them.
+        Ask the evidence bundle — data room, signed attestations, replication, FTO, talent, and the
+        knowledge graph. Every answer cites its sources; nothing is invented beyond them.
       </Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipScroll}>
-        {SUGGESTED_QUESTIONS.map((q) => (
+        {starters.map((q) => (
           <Pressable key={q} style={s.chip} onPress={() => ask(q)} accessibilityRole="button">
             <Text style={s.chipText}>{q}</Text>
           </Pressable>
@@ -72,9 +79,10 @@ export function CopilotCard({ startup }: { startup: Startup }) {
           {x.answer.citations.length > 0 && (
             <View style={s.citationRow}>
               {x.answer.citations.map((cit) => (
-                <View key={cit.docTitle + cit.section} style={s.citation}>
+                <View key={cit.kind + cit.ref + cit.section} style={s.citation}>
+                  <Text style={s.citationKind}>{kindLabel(cit.kind)}</Text>
                   <Text style={s.citationText}>
-                    {cit.docTitle} · {cit.section}
+                    {cit.ref} · {cit.section}
                   </Text>
                 </View>
               ))}
@@ -145,16 +153,30 @@ const makeStyles = (c: Palette) => {
     answer: { ...T.body, fontSize: 13, lineHeight: 20, color: c.inkMuted },
     citationRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: space.sm },
     citation: {
+      flexDirection: 'row',
+      alignItems: 'center',
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: c.bronze,
       borderRadius: radius.sm,
       backgroundColor: c.surfaceGoldTint,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
+      paddingRight: 6,
       marginRight: space.sm,
       marginBottom: space.xs,
+      overflow: 'hidden',
     },
-    citationText: { fontFamily: font.sans, fontSize: 10, color: c.bronze },
+    citationKind: {
+      fontFamily: font.sans,
+      fontSize: 9,
+      fontWeight: '700',
+      color: '#F5F7FA',
+      backgroundColor: c.bronze,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      marginRight: 5,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    citationText: { fontFamily: font.sans, fontSize: 10, color: c.bronze, paddingVertical: 2 },
 
     askRow: { flexDirection: 'row', alignItems: 'center' },
     input: {

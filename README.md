@@ -76,9 +76,24 @@ framework.
   to a single position surfaces a calm diversification note (audit-trailed in
   `suitability_acknowledgements`, exposure computed by the
   `investor_concentration` view).
-- **Diligence Copilot** — grounded Q&A over each deal's data room with
-  source citations on every answer; ungrounded questions are declined and
-  routed to Community Diligence (`data_room_documents`, `copilot_exchanges`).
+- **AI Diligence Copilot** — grounded, cited Q&A over a deal's **entire evidence
+  bundle**, not just the data room: retrieval runs over a unified corpus drawn
+  from `data_room_documents`, the **signed milestone attestations**, independent
+  **replication studies**, the **freedom-to-operate landscape** (with the
+  SQL-computed clearance score), **talent flow**, and the **knowledge graph**
+  (spinout lineage + competing labs). Every answer carries source chips tagged by
+  kind (Data room / Attestation / Replication / FTO / Talent / Graph); questions
+  the evidence can't ground are declined and routed to Community Diligence rather
+  than speculated on. `POST /api/v1/copilot/ask` runs the RAG (retrieval +
+  generation) and persists each exchange with its citations to
+  `copilot_exchanges` for audit; `GET /api/v1/copilot/history` returns the
+  asker's own trail (RLS `copilot_own`). Generation is the **Claude API**
+  (`claude-opus-5`, adaptive thinking, streamed) when `ANTHROPIC_API_KEY` is
+  configured, with a deterministic grounded-synthesis fallback so the endpoint is
+  fully functional offline. Mobile: the Copilot panel on the deal page with
+  deal-aware starter chips, cited answers, and per-source kind badges
+  ([`backend/api/src/copilot`](backend/api/src/copilot),
+  [`mobile/src/services/copilot.ts`](mobile/src/services/copilot.ts)).
 - **Portfolio analytics** — paid-in vs current value, TVPI, and true XIRR
   from cash-flow dates; quarterly NAV line chart (validated emerald); Tax
   Document Center for Schedule K-1s (`spv_valuations`, `tax_documents`).
@@ -383,9 +398,12 @@ false-precision point estimates.
 - `backend/db/tests.sql` — database assertions: clearing engine on the
   reference book (12.375/300 with correct fills), raised-amount trigger,
   cooling-off stamp, late-cancel rejection, views.
+- `backend/api/test/copilot-retrieval.spec.mjs` — standalone assertions for the
+  diligence copilot's grounded-retrieval layer (RAG ranking, evidence selection,
+  and the decline signal for out-of-scope questions).
 - `.github/workflows/ci.yml` — on every push: mobile typecheck + tests + web
-  bundle + companion build; backend build; schema + seed + assertions against
-  a real PostgreSQL 16 service.
+  bundle + companion build; backend build + VC-crypto + copilot-retrieval specs;
+  schema + seed + assertions against a real PostgreSQL 16 service.
 - `mobile/.maestro/invest-happy-path.yaml` — device E2E scaffold
   (onboarding → quiz → invest → sign → cooling-off) for local/device-farm runs.
 
@@ -406,6 +424,8 @@ cd backend/api && npm install && npm run build && npm start
 # POST /api/v1/investments                  · Reg CF limit + 1.5% fee + cooling-off stamp
 # DELETE /api/v1/investments/:id            · cancel (DB trigger enforces 48h window)
 # GET  /api/v1/portfolio                    · positions, commitments, tax docs (RLS)
+# POST /api/v1/copilot/ask                  · grounded RAG over the deal's evidence bundle (cited)
+# GET  /api/v1/copilot/history              · the asker's own copilot trail (RLS copilot_own)
 # GET  /api/v1/auctions/active              · window + indicative clearing price
 # POST /api/v1/auctions/:id/orders          · place bid/offer
 # POST /api/v1/auctions/:id/clear           · run the uniform-price engine
