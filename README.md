@@ -82,6 +82,23 @@ framework.
   ([`backend/api/src/escrow`](backend/api/src/escrow),
   [`mobile/src/utils/escrow.ts`](mobile/src/utils/escrow.ts),
   `escrow_tranches`).
+- **Reputation & social layer** — the platform's trust graph. Founders,
+  attestors, and investors accrue reputation from an append-only ledger of
+  on-platform events (milestones completed and **independently attested**,
+  replications that held up, endorsements, deals led — slips subtract), rolled
+  into a **0–100 trust score** by one formula shared across API and app. A social
+  **follow graph** and a web-of-trust of **endorsements** layer on top. The deal
+  page's **Founder Track Record** card shows the score, band, an executed /
+  attested / replicated / endorsed breakdown, endorsements, and a follow action.
+  Backend `GET /api/v1/reputation/profile/:kind/:id` (trust profile),
+  `/leaderboard` (ranked by score), `POST /reputation/follow` + `/endorse` and
+  `GET /reputation/feed` (a follower's activity feed of subjects they follow —
+  the follow set read under the caller's RLS, public events resolved as system).
+  Follows are RLS-scoped (`follows_own`); endorsements are public-read /
+  author-write with a no-self-endorse CHECK
+  ([`backend/api/src/reputation`](backend/api/src/reputation),
+  [`mobile/src/utils/reputation.ts`](mobile/src/utils/reputation.ts),
+  `reputation_events` / `follows` / `endorsements`).
 - **Community Diligence Q&A** — threaded public questions on every deal with
   FOUNDER / TTO / INVESTOR role badges and an ask-a-question composer
   (`deal_questions` / `deal_answers` with moderation-preserving hides).
@@ -420,9 +437,12 @@ false-precision point estimates.
 - `backend/api/test/escrow.spec.mjs` — standalone assertions for the
   milestone-tranched escrow roll-up (released vs held vs refunded, snapshot
   handling, and attestation-gated releasability).
+- `backend/api/test/reputation.spec.mjs` — standalone assertions for the
+  reputation trust-score formula (verification weighting, slip penalty, bands).
 - `.github/workflows/ci.yml` — on every push: mobile typecheck + tests + web
   bundle + companion build; backend build + VC-crypto + copilot-retrieval +
-  escrow specs; schema + seed + assertions against a real PostgreSQL 16 service.
+  escrow + reputation specs; schema + seed + assertions against a real
+  PostgreSQL 16 service.
 - `mobile/.maestro/invest-happy-path.yaml` — device E2E scaffold
   (onboarding → quiz → invest → sign → cooling-off) for local/device-farm runs.
 
@@ -448,6 +468,10 @@ cd backend/api && npm install && npm run build && npm start
 # GET  /api/v1/escrow/:campaignId           · milestone-tranched escrow schedule + roll-up
 # POST /api/v1/escrow/tranches/:id/release  · release a tranche (admin; DB trigger gates on attestation)
 # POST /api/v1/escrow/tranches/:id/refund   · refund a held tranche to investors (admin)
+# GET  /api/v1/reputation/profile/:kind/:id · founder/attestor trust profile (score, band, breakdown)
+# GET  /api/v1/reputation/leaderboard       · subjects ranked by trust score
+# POST /api/v1/reputation/follow · /endorse  · social follow graph + web-of-trust (RLS)
+# GET  /api/v1/reputation/feed              · activity feed of subjects the caller follows
 # GET  /api/v1/auctions/active              · window + indicative clearing price
 # POST /api/v1/auctions/:id/orders          · place bid/offer
 # POST /api/v1/auctions/:id/clear           · run the uniform-price engine

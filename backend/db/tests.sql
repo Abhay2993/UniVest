@@ -338,5 +338,37 @@ BEGIN
        AND position = 3 AND status = 'released' AND released_at IS NOT NULL;
     ASSERT v_raised = 1, 'on-close tranche release did not stamp released_at';
 
+    ------------------------------------------------------------------
+    -- 16. Reputation & social layer: counts, no self-endorsement, dedupe
+    ------------------------------------------------------------------
+    -- The founder's ledger rolls up to completed=2, attested=2, replicated=1,
+    -- endorsements=1 (encoded as C*1000 + A*100 + R*10 + E).
+    SELECT completed * 1000 + attested * 100 + replicated * 10 + endorsements
+      INTO v_raised FROM reputation_event_counts
+     WHERE subject_kind = 'founder' AND subject_id = '00000000-0000-0000-0000-000000000003';
+    ASSERT v_raised = 2211, 'reputation counts wrong (C*1000+A*100+R*10+E): ' || COALESCE(v_raised::text, 'NULL');
+
+    -- Self-endorsement is rejected by the CHECK.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO endorsements (endorser_id, subject_kind, subject_id, note)
+        VALUES ('00000000-0000-0000-0000-000000000003','founder',
+                '00000000-0000-0000-0000-000000000003','vouching for myself');
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'self-endorsement was not rejected';
+
+    -- A duplicate follow is rejected by the primary key.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO follows (follower_id, subject_kind, subject_id)
+        VALUES ('00000000-0000-0000-0000-000000000001','founder',
+                '00000000-0000-0000-0000-000000000003');
+    EXCEPTION WHEN unique_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'duplicate follow was not rejected';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

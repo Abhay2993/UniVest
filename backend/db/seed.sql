@@ -122,6 +122,31 @@ VALUES
   ('00000000-0000-0000-0000-0000000000ac', NULL, 3,
    'Utility-Scale Order Book', 30.00, 'held', NULL, NULL);
 
+-- Reputation ledger: the Helion founder (Dr. Reyes, ...0003) has two completed +
+-- attested milestones and one replication; the MIT attestor (K. Brennan, ...0004)
+-- earns reputation for a signature that later replicated. K. Brennan endorses the
+-- founder; Alice (...0001) follows her.
+INSERT INTO reputation_events (subject_kind, subject_id, event_type, source_ref) VALUES
+  ('founder', '00000000-0000-0000-0000-000000000003','milestone_completed','Lab-Scale Coil Demonstration'),
+  ('founder', '00000000-0000-0000-0000-000000000003','milestone_completed','Prototype Validation'),
+  ('founder', '00000000-0000-0000-0000-000000000003','milestone_attested','Lab-Scale Coil Demonstration'),
+  ('founder', '00000000-0000-0000-0000-000000000003','milestone_attested','Prototype Validation'),
+  ('founder', '00000000-0000-0000-0000-000000000003','replication_confirmed','Prototype Validation (21T coil)'),
+  ('attestor','00000000-0000-0000-0000-000000000004','milestone_attested','Prototype Validation'),
+  ('attestor','00000000-0000-0000-0000-000000000004','replication_confirmed','Prototype Validation (21T coil)');
+
+INSERT INTO endorsements (endorser_id, subject_kind, subject_id, note) VALUES
+  ('00000000-0000-0000-0000-000000000004','founder','00000000-0000-0000-0000-000000000003',
+   'Rigorous evidence packages — every milestone we attested held up under independent replication.')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO reputation_events (subject_kind, subject_id, event_type, source_ref) VALUES
+  ('founder','00000000-0000-0000-0000-000000000003','endorsement_received','K. Brennan · MIT TLO');
+
+INSERT INTO follows (follower_id, subject_kind, subject_id) VALUES
+  ('00000000-0000-0000-0000-000000000001','founder','00000000-0000-0000-0000-000000000003')
+ON CONFLICT DO NOTHING;
+
 -- ----------------------------------------------------------------------------
 -- Closed campaign (Vasca) → SPV with holdings, valuations, tax doc, auction
 -- ----------------------------------------------------------------------------

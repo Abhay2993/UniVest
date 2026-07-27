@@ -13,6 +13,7 @@ import { OfferingsModule } from './offerings/offerings.module';
 import { PassportModule } from './passport/passport.module';
 import { PlatformModule } from './platform/platform.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
+import { ReputationModule } from './reputation/reputation.module';
 import { SecondaryModule } from './secondary/secondary.module';
 import { UniversityModule } from './university/university.module';
 import { UsersModule } from './users/users.module';
@@ -36,6 +37,7 @@ import { UsersModule } from './users/users.module';
     PortfolioModule,
     CopilotModule,
     EscrowModule,
+    ReputationModule,
   ],
 })
 export class AppModule {}

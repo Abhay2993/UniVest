@@ -19,6 +19,7 @@ import {
 } from '../components/ScientificDiligenceCards';
 import { ScienceMonitorCard } from '../components/ScienceMonitorCard';
 import { ScienceRiskCard } from '../components/ScienceRiskCard';
+import { TrustProfileCard } from '../components/TrustProfileCard';
 import { ValuationDistribution } from '../components/ValuationDistribution';
 import { VerifiedBadge } from '../components/VerifiedBadge';
 
@@ -116,6 +117,11 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
           <Text style={s.pitchDisclaimer}>
             Generated from the founding team's peer-reviewed publications. Not investment advice.
           </Text>
+        </View>
+
+        {/* Founder trust profile — reputation & social layer */}
+        <View style={s.trackerWrap}>
+          <TrustProfileCard startup={startup} />
         </View>
 
         {/* Diligence Copilot — grounded Q&A over the data room */}

@@ -387,6 +387,65 @@ SELECT c.id AS campaign_id,
  GROUP BY c.id, c.target_amount;
 
 -- ----------------------------------------------------------------------------
+-- Reputation & social layer (the trust graph)
+-- On-platform track record is captured as an append-only ledger of reputation
+-- events per subject (a founder, an attestor, or an investor — all users, keyed
+-- by a role facet). Founders earn reputation for completing and independently
+-- *attesting* milestones and for milestones that later replicate; attestors
+-- earn it for signatures that hold up. A social follow graph and a web-of-trust
+-- of endorsements layer on top. Scoring lives in the API (shared with mobile)
+-- so one formula governs both; the counts view feeds it.
+-- ----------------------------------------------------------------------------
+CREATE TYPE reputation_subject   AS ENUM ('founder', 'attestor', 'investor');
+CREATE TYPE reputation_event_type AS ENUM
+    ('milestone_completed', 'milestone_attested', 'replication_confirmed',
+     'milestone_slipped', 'deal_led', 'endorsement_received');
+
+CREATE TABLE reputation_events (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    subject_kind reputation_subject    NOT NULL,
+    subject_id   UUID                  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_type   reputation_event_type NOT NULL,
+    source_ref   TEXT,                                             -- milestone/deal label or note
+    occurred_at  TIMESTAMPTZ           NOT NULL DEFAULT now()
+);
+
+-- Social follow graph: an investor follows a subject for its activity feed.
+CREATE TABLE follows (
+    follower_id  UUID               NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    subject_kind reputation_subject NOT NULL,
+    subject_id   UUID               NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at   TIMESTAMPTZ        NOT NULL DEFAULT now(),
+    PRIMARY KEY (follower_id, subject_kind, subject_id)
+);
+
+-- Web-of-trust: one actor vouches for another. Weighted into the score.
+CREATE TABLE endorsements (
+    id           UUID               PRIMARY KEY DEFAULT gen_random_uuid(),
+    endorser_id  UUID               NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    subject_kind reputation_subject NOT NULL,
+    subject_id   UUID               NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    note         TEXT               NOT NULL CHECK (char_length(note) BETWEEN 3 AND 280),
+    created_at   TIMESTAMPTZ        NOT NULL DEFAULT now(),
+    UNIQUE (endorser_id, subject_kind, subject_id),
+    CHECK (endorser_id <> subject_id)                             -- no self-endorsement
+);
+
+-- Reputation ledger rolled into per-subject counts by type; the API scorer
+-- turns these into a 0–100 score. Follower/endorsement tallies join in at
+-- profile time.
+CREATE VIEW reputation_event_counts AS
+SELECT subject_kind, subject_id,
+       COUNT(*) FILTER (WHERE event_type = 'milestone_completed')   AS completed,
+       COUNT(*) FILTER (WHERE event_type = 'milestone_attested')    AS attested,
+       COUNT(*) FILTER (WHERE event_type = 'replication_confirmed') AS replicated,
+       COUNT(*) FILTER (WHERE event_type = 'milestone_slipped')     AS slipped,
+       COUNT(*) FILTER (WHERE event_type = 'deal_led')              AS deals_led,
+       COUNT(*) FILTER (WHERE event_type = 'endorsement_received')  AS endorsements
+  FROM reputation_events
+ GROUP BY subject_kind, subject_id;
+
+-- ----------------------------------------------------------------------------
 -- Deal Q&A (community diligence; the public discussion channel Reg CF expects)
 -- Author badges (founder / TTO / investor) derive from users.role and
 -- university_members at read time. Moderation hides rather than deletes,
@@ -1205,6 +1264,20 @@ CREATE POLICY copilot_own ON copilot_exchanges
     USING (user_id = app_user_id() OR app_is_admin())
     WITH CHECK (user_id = app_user_id() OR app_is_admin());
 
+-- A user manages only their own follows (their feed subscriptions).
+ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
+CREATE POLICY follows_own ON follows
+    USING (follower_id = app_user_id() OR app_is_admin())
+    WITH CHECK (follower_id = app_user_id() OR app_is_admin());
+
+-- Endorsements are public (social proof) but each is written only by its author.
+ALTER TABLE endorsements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY endorsements_read ON endorsements FOR SELECT USING (true);
+CREATE POLICY endorsements_write ON endorsements FOR INSERT
+    WITH CHECK (endorser_id = app_user_id() OR app_is_admin());
+CREATE POLICY endorsements_admin ON endorsements FOR DELETE
+    USING (endorser_id = app_user_id() OR app_is_admin());
+
 -- Public catalog tables (universities, startups, campaigns, milestones,
 -- syndicates) intentionally have no RLS: they are read-mostly marketing data;
 -- writes are restricted at the API layer to TTO/admin roles.
@@ -1231,6 +1304,10 @@ CREATE INDEX idx_valuations_spv        ON spv_valuations (spv_id, as_of DESC);
 CREATE INDEX idx_tax_docs_user         ON tax_documents (user_id, tax_year DESC);
 CREATE INDEX idx_dataroom_campaign     ON data_room_documents (campaign_id);
 CREATE INDEX idx_escrow_campaign       ON escrow_tranches (campaign_id, position);
+CREATE INDEX idx_repevents_subject     ON reputation_events (subject_kind, subject_id, occurred_at DESC);
+CREATE INDEX idx_follows_subject       ON follows (subject_kind, subject_id);
+CREATE INDEX idx_follows_follower      ON follows (follower_id);
+CREATE INDEX idx_endorse_subject       ON endorsements (subject_kind, subject_id);
 CREATE INDEX idx_copilot_user          ON copilot_exchanges (user_id, created_at DESC);
 CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcome IS NOT NULL;
 CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);

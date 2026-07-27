@@ -63,6 +63,8 @@ jobs:
         run: node test/copilot-retrieval.spec.mjs
       - name: Milestone-tranched escrow (roll-up + releasability)
         run: node test/escrow.spec.mjs
+      - name: Reputation scoring (trust-score formula + bands)
+        run: node test/reputation.spec.mjs
 
   database:
     name: Database — schema, seed, assertions
