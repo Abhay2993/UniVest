@@ -314,3 +314,23 @@ VALUES
   ('00000000-0000-0000-0000-0000000000f7','00000000-0000-0000-0000-000000000001',
    '00000000-0000-0000-0000-0000000000af','2025-08-01',100,1000.00)
 ON CONFLICT DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- Governance + Alerts (seeded last — references the Vasca SPV and its holdings)
+-- An open proposal on the Vasca SPV (holdings: Alice 250u, Bob 180u → eligible
+-- weight 430u, quorum 50%). Alice votes FOR with her 250-unit weight (turnout
+-- 58% clears quorum). Alice also gets default (all-on) alert preferences.
+-- ----------------------------------------------------------------------------
+INSERT INTO governance_proposals (id, spv_id, title, description, kind, quorum_pct, created_by, closes_at)
+VALUES ('00000000-0000-0000-0000-0000000000e5','00000000-0000-0000-0000-0000000000af',
+        'Approve secondary tender window at 12.50/unit',
+        'The lead has sourced a buyer for up to 20% of the SPV at 12.50 per unit. Approve opening a tender window so holders may sell pro-rata at that price.',
+        'tender_approval', 50.00, '00000000-0000-0000-0000-000000000006', now() + interval '10 days')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO governance_votes (proposal_id, voter_id, choice, weight)
+VALUES ('00000000-0000-0000-0000-0000000000e5','00000000-0000-0000-0000-000000000001','for',250)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO alert_preferences (user_id) VALUES ('00000000-0000-0000-0000-000000000001')
+ON CONFLICT DO NOTHING;

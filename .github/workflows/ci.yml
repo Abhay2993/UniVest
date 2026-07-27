@@ -65,6 +65,8 @@ jobs:
         run: node test/escrow.spec.mjs
       - name: Reputation scoring (trust-score formula + bands)
         run: node test/reputation.spec.mjs
+      - name: Governance tally (weighted votes + quorum + outcome)
+        run: node test/governance.spec.mjs
 
   database:
     name: Database — schema, seed, assertions

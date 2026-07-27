@@ -99,6 +99,25 @@ framework.
   ([`backend/api/src/reputation`](backend/api/src/reputation),
   [`mobile/src/utils/reputation.ts`](mobile/src/utils/reputation.ts),
   `reputation_events` / `follows` / `endorsements`).
+- **Governance & alerts** — SPV shareholder democracy plus the alerts that keep
+  holders informed. **Governance**: retail holders in a nominee SPV vote on
+  material decisions (approve a tender, ratify an escrow release, extend a
+  deadline, a follow-on) with **voting weight equal to their units**; quorum and
+  outcome come from the weighted tally, only holders may vote, and each holder
+  casts one (mutable) ballot. `GET /api/v1/governance/spv/:spvId/proposals`
+  (holders + admin), `GET /governance/proposals/:id`, `POST /proposals/:id/vote`
+  (weight snapshotted, RLS `gov_votes_write`), `POST /governance/proposals` +
+  `/close` (admin; close finalizes the outcome). The **Portfolio → SPV Governance**
+  card shows each proposal's for/against/abstain bars, turnout vs quorum, and
+  vote buttons. **Alerts**: a per-holder material-event feed scoped to the
+  caller's holdings and filtered by category preferences — `GET /api/v1/alerts/feed`
+  (holdings read under the caller's RLS, public events joined in),
+  `GET`/`PUT /alerts/preferences` (RLS `alert_prefs_own`); the **Portfolio → Alerts**
+  card surfaces attestation and governance events with per-category mute toggles
+  ([`backend/api/src/governance`](backend/api/src/governance),
+  [`backend/api/src/alerts`](backend/api/src/alerts),
+  [`mobile/src/utils/governance.ts`](mobile/src/utils/governance.ts),
+  `governance_proposals` / `governance_votes` / `proposal_tally` / `alert_preferences`).
 - **Community Diligence Q&A** — threaded public questions on every deal with
   FOUNDER / TTO / INVESTOR role badges and an ask-a-question composer
   (`deal_questions` / `deal_answers` with moderation-preserving hides).
@@ -439,10 +458,12 @@ false-precision point estimates.
   handling, and attestation-gated releasability).
 - `backend/api/test/reputation.spec.mjs` — standalone assertions for the
   reputation trust-score formula (verification weighting, slip penalty, bands).
+- `backend/api/test/governance.spec.mjs` — standalone assertions for the
+  governance tally (weighted turnout, quorum, and the pass/reject outcome).
 - `.github/workflows/ci.yml` — on every push: mobile typecheck + tests + web
   bundle + companion build; backend build + VC-crypto + copilot-retrieval +
-  escrow + reputation specs; schema + seed + assertions against a real
-  PostgreSQL 16 service.
+  escrow + reputation + governance specs; schema + seed + assertions against a
+  real PostgreSQL 16 service.
 - `mobile/.maestro/invest-happy-path.yaml` — device E2E scaffold
   (onboarding → quiz → invest → sign → cooling-off) for local/device-farm runs.
 
@@ -472,6 +493,10 @@ cd backend/api && npm install && npm run build && npm start
 # GET  /api/v1/reputation/leaderboard       · subjects ranked by trust score
 # POST /api/v1/reputation/follow · /endorse  · social follow graph + web-of-trust (RLS)
 # GET  /api/v1/reputation/feed              · activity feed of subjects the caller follows
+# GET  /api/v1/governance/spv/:id/proposals · SPV proposals + weighted tally (holders)
+# POST /api/v1/governance/proposals/:id/vote · cast a units-weighted vote (holders, RLS)
+# POST /api/v1/governance/proposals/:id/close · finalize outcome by quorum + majority (admin)
+# GET  /api/v1/alerts/feed · PUT /alerts/preferences · holdings-scoped alerts + category prefs (RLS)
 # GET  /api/v1/auctions/active              · window + indicative clearing price
 # POST /api/v1/auctions/:id/orders          · place bid/offer
 # POST /api/v1/auctions/:id/clear           · run the uniform-price engine

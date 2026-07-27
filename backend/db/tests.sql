@@ -370,5 +370,38 @@ BEGIN
     END;
     ASSERT v_blocked, 'duplicate follow was not rejected';
 
+    ------------------------------------------------------------------
+    -- 17. Governance: weighted tally, quorum, one-vote-per-holder
+    ------------------------------------------------------------------
+    -- Eligible weight for the Vasca SPV is the sum of its holdings (250 + 180).
+    SELECT eligible_weight INTO v_raised FROM proposal_tally
+     WHERE proposal_id = '00000000-0000-0000-0000-0000000000e5';
+    ASSERT v_raised = 430, 'eligible voting weight wrong: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- Alice's FOR vote carries her 250-unit weight; turnout 250/430 ≥ 50% quorum.
+    SELECT for_weight INTO v_raised FROM proposal_tally
+     WHERE proposal_id = '00000000-0000-0000-0000-0000000000e5';
+    ASSERT v_raised = 250, 'for-weight wrong: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- A second vote by the same holder is rejected by the primary key.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO governance_votes (proposal_id, voter_id, choice, weight)
+        VALUES ('00000000-0000-0000-0000-0000000000e5','00000000-0000-0000-0000-000000000001','against',250);
+    EXCEPTION WHEN unique_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'duplicate vote by the same holder was not rejected';
+
+    -- Zero-weight (non-holder) votes are rejected by the CHECK.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO governance_votes (proposal_id, voter_id, choice, weight)
+        VALUES ('00000000-0000-0000-0000-0000000000e5','00000000-0000-0000-0000-000000000005','for',0);
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'zero-weight vote was not rejected';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

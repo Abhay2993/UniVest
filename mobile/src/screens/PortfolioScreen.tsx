@@ -14,7 +14,9 @@ import {
   moic,
   stageFromMilestones,
 } from '../utils/portfolio-analytics';
+import { AlertsCard } from '../components/AlertsCard';
 import { ChartPoint, LineChart } from '../components/LineChart';
+import { GovernanceCard } from '../components/GovernanceCard';
 import { PortfolioRiskCard } from '../components/PortfolioRiskCard';
 
 type PortfolioView = 'overview' | 'analytics' | 'tax';
@@ -201,6 +203,12 @@ export function PortfolioScreen({ onSelectStartup }: Props) {
           );
         })}
       </View>
+
+      {/* Alerts — material events on your holdings */}
+      <AlertsCard positions={PORTFOLIO_POSITIONS} />
+
+      {/* SPV governance — weighted voting on your holdings */}
+      <GovernanceCard positions={PORTFOLIO_POSITIONS} />
 
       {/* Factor exposure + scenario stress testing (milestone-tree Monte Carlo) */}
       <PortfolioRiskCard

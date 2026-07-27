@@ -946,6 +946,72 @@ SELECT h.user_id,
        ) v ON TRUE;
 
 -- ----------------------------------------------------------------------------
+-- Governance (SPV shareholder democracy) + Alerts
+-- Retail holders in a nominee SPV vote on material decisions (approve a tender,
+-- ratify an escrow release, extend a milestone deadline, a follow-on). Voting
+-- weight is the holder's units; only holders may vote; quorum and outcome are
+-- computed from the tally. Alerts are per-holder material-event subscriptions,
+-- surfaced as a feed scoped to the caller's holdings.
+-- ----------------------------------------------------------------------------
+CREATE TYPE proposal_kind   AS ENUM
+    ('escrow_release', 'tender_approval', 'deadline_extension', 'follow_on', 'general');
+CREATE TYPE proposal_status AS ENUM ('open', 'passed', 'rejected', 'executed');
+CREATE TYPE vote_choice     AS ENUM ('for', 'against', 'abstain');
+
+CREATE TABLE governance_proposals (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    spv_id       UUID            NOT NULL REFERENCES spvs(id) ON DELETE CASCADE,
+    title        TEXT            NOT NULL,
+    description  TEXT            NOT NULL,
+    kind         proposal_kind   NOT NULL DEFAULT 'general',
+    status       proposal_status NOT NULL DEFAULT 'open',
+    -- Fraction of eligible voting weight that must vote for the result to stand.
+    quorum_pct   NUMERIC(5,2)    NOT NULL DEFAULT 50.00 CHECK (quorum_pct BETWEEN 0 AND 100),
+    created_by   UUID            REFERENCES users(id),
+    opens_at     TIMESTAMPTZ     NOT NULL DEFAULT now(),
+    closes_at    TIMESTAMPTZ     NOT NULL,
+    closed_at    TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ     NOT NULL DEFAULT now()
+);
+
+CREATE TABLE governance_votes (
+    proposal_id  UUID          NOT NULL REFERENCES governance_proposals(id) ON DELETE CASCADE,
+    voter_id     UUID          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    choice       vote_choice   NOT NULL,
+    -- Snapshot of the voter's SPV units at vote time (their voting weight).
+    weight       NUMERIC(24,6) NOT NULL CHECK (weight > 0),
+    created_at   TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    PRIMARY KEY (proposal_id, voter_id)
+);
+
+-- Live tally per proposal: weight for/against/abstain, the SPV's total eligible
+-- weight (sum of its holdings), turnout, and whether quorum is met. Outcome is
+-- decided at close; this view exposes the running state.
+CREATE VIEW proposal_tally AS
+SELECT p.id AS proposal_id,
+       p.spv_id,
+       COALESCE(SUM(v.weight) FILTER (WHERE v.choice = 'for'), 0)     AS for_weight,
+       COALESCE(SUM(v.weight) FILTER (WHERE v.choice = 'against'), 0) AS against_weight,
+       COALESCE(SUM(v.weight) FILTER (WHERE v.choice = 'abstain'), 0) AS abstain_weight,
+       COALESCE(SUM(v.weight), 0)                                     AS votes_cast_weight,
+       (SELECT COALESCE(SUM(h.units), 0) FROM spv_holdings h WHERE h.spv_id = p.spv_id) AS eligible_weight,
+       p.quorum_pct
+  FROM governance_proposals p
+  LEFT JOIN governance_votes v ON v.proposal_id = p.id
+ GROUP BY p.id, p.spv_id, p.quorum_pct;
+
+-- Per-holder alert subscriptions (opt-in per category). Defaults are all on.
+CREATE TABLE alert_preferences (
+    user_id      UUID        PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    attestation  BOOLEAN     NOT NULL DEFAULT TRUE,
+    escrow       BOOLEAN     NOT NULL DEFAULT TRUE,
+    governance   BOOLEAN     NOT NULL DEFAULT TRUE,
+    secondary    BOOLEAN     NOT NULL DEFAULT TRUE,
+    closing      BOOLEAN     NOT NULL DEFAULT TRUE,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ----------------------------------------------------------------------------
 -- Diligence Copilot (data room + grounded Q&A)
 -- ----------------------------------------------------------------------------
 CREATE TABLE data_room_documents (
@@ -1278,6 +1344,22 @@ CREATE POLICY endorsements_write ON endorsements FOR INSERT
 CREATE POLICY endorsements_admin ON endorsements FOR DELETE
     USING (endorser_id = app_user_id() OR app_is_admin());
 
+-- Governance votes are public tally inputs (read), but each is cast only by its
+-- own voter — no ballot-stuffing on another holder's behalf.
+ALTER TABLE governance_votes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY gov_votes_read ON governance_votes FOR SELECT USING (true);
+CREATE POLICY gov_votes_write ON governance_votes FOR INSERT
+    WITH CHECK (voter_id = app_user_id() OR app_is_admin());
+CREATE POLICY gov_votes_update ON governance_votes FOR UPDATE
+    USING (voter_id = app_user_id() OR app_is_admin())
+    WITH CHECK (voter_id = app_user_id() OR app_is_admin());
+
+-- A user manages only their own alert preferences.
+ALTER TABLE alert_preferences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY alert_prefs_own ON alert_preferences
+    USING (user_id = app_user_id() OR app_is_admin())
+    WITH CHECK (user_id = app_user_id() OR app_is_admin());
+
 -- Public catalog tables (universities, startups, campaigns, milestones,
 -- syndicates) intentionally have no RLS: they are read-mostly marketing data;
 -- writes are restricted at the API layer to TTO/admin roles.
@@ -1308,6 +1390,8 @@ CREATE INDEX idx_repevents_subject     ON reputation_events (subject_kind, subje
 CREATE INDEX idx_follows_subject       ON follows (subject_kind, subject_id);
 CREATE INDEX idx_follows_follower      ON follows (follower_id);
 CREATE INDEX idx_endorse_subject       ON endorsements (subject_kind, subject_id);
+CREATE INDEX idx_gov_proposals_spv     ON governance_proposals (spv_id, status, closes_at DESC);
+CREATE INDEX idx_gov_votes_proposal    ON governance_votes (proposal_id);
 CREATE INDEX idx_copilot_user          ON copilot_exchanges (user_id, created_at DESC);
 CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcome IS NOT NULL;
 CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);

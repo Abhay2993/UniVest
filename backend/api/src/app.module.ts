@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { DbModule } from './db/db.module';
 import { AdminModule } from './admin/admin.module';
+import { AlertsModule } from './alerts/alerts.module';
 import { AngelModule } from './angel/angel.module';
 import { AuctionsModule } from './auctions/auctions.module';
 import { CopilotModule } from './copilot/copilot.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { DiligenceModule } from './diligence/diligence.module';
 import { EscrowModule } from './escrow/escrow.module';
+import { GovernanceModule } from './governance/governance.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { ModelsModule } from './models/models.module';
 import { OfferingsModule } from './offerings/offerings.module';
@@ -38,6 +40,8 @@ import { UsersModule } from './users/users.module';
     CopilotModule,
     EscrowModule,
     ReputationModule,
+    GovernanceModule,
+    AlertsModule,
   ],
 })
 export class AppModule {}
