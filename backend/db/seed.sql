@@ -334,3 +334,46 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO alert_preferences (user_id) VALUES ('00000000-0000-0000-0000-000000000001')
 ON CONFLICT DO NOTHING;
+
+-- ----------------------------------------------------------------------------
+-- Tax-advantaged schemes + a UK deep-tech deal to demonstrate EIS/SEIS relief
+-- ----------------------------------------------------------------------------
+INSERT INTO tax_schemes (code, name, jurisdiction, income_relief_pct, annual_cap, cap_currency, min_hold_months, cgt_exempt, loss_relief, certificate_kind, notes) VALUES
+  ('uk_seis','UK SEIS','GB',50.00,200000,'GBP',36,TRUE,TRUE,'SEIS3','Seed Enterprise Investment Scheme — earliest-stage relief.'),
+  ('uk_eis','UK EIS','GB',30.00,1000000,'GBP',36,TRUE,TRUE,'EIS3','Enterprise Investment Scheme.'),
+  ('uk_ki_eis','UK EIS (Knowledge-Intensive)','GB',30.00,2000000,'GBP',36,TRUE,TRUE,'EIS3-KI','Knowledge-intensive EIS — the higher-cap variant tuned for deep-tech/R&D.'),
+  ('au_esic','AU ESIC','AU',20.00,200000,'AUD',12,TRUE,FALSE,'ESIC statement','Early Stage Innovation Company tax offset.'),
+  ('us_qsbs','US QSBS (Section 1202)','US',0.00,NULL,'USD',60,TRUE,FALSE,'QSBS attestation','Qualified Small Business Stock — up to 100% capital-gains exclusion after a 5-year hold.'),
+  ('fr_ir_pme','FR IR-PME','FR',25.00,50000,'EUR',60,FALSE,FALSE,'IR-PME statement','Madelin income-tax reduction for SME investment.')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO universities (id, name, short_name, country_code, city, latitude, longitude, verified)
+VALUES ('00000000-0000-0000-0000-0000000000ba','Imperial College London','Imperial','GB','London',51.4988,-0.1749,TRUE)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO startups (id, university_id, name, slug, vertical, tagline, founder_user_id,
+                      pitch_plain_english, pitch_commercialization, pitch_lab_proof, pitch_generated_at)
+VALUES ('00000000-0000-0000-0000-0000000000bb','00000000-0000-0000-0000-0000000000ba','Photonic Logic','photonic-logic','Semiconductors',
+        'Optical interconnects that move data between AI chips as light.',NULL,NULL,NULL,NULL,NULL)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO campaigns (id, startup_id, status, template, university_equity_pct, target_amount,
+                       raised_amount, min_investment, max_investment, price_per_unit, currency_code, opens_at, closes_at)
+VALUES ('00000000-0000-0000-0000-0000000000bc','00000000-0000-0000-0000-0000000000bb','live','usit',12.00,
+        1500000, 0, 500, 50000, 1.00, 'GBP', now() - interval '20 days', now() + interval '25 days')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO users (id, role, email, full_name, country_code, password_hash, kyc_status, kyc_approved_at, invest_limit_annual, suitability_score, suitability_quiz_at)
+VALUES ('00000000-0000-0000-0000-000000000007','retail','emma@example.co.uk','Emma Clarke','GB','demo','approved',now(),NULL,80,now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Advance assurance: Helion (US) → QSBS; Photonic Logic (UK) → KI-EIS + SEIS.
+INSERT INTO campaign_tax_schemes (campaign_id, scheme_code, advance_assurance_ref, scheme_cap) VALUES
+  ('00000000-0000-0000-0000-0000000000ac','us_qsbs','QSBS-2026-HELION',NULL),
+  ('00000000-0000-0000-0000-0000000000bc','uk_ki_eis','AA-EIS-2026-04412',2000000),
+  ('00000000-0000-0000-0000-0000000000bc','uk_seis','AA-SEIS-2026-04413',350000)
+ON CONFLICT DO NOTHING;
+
+-- A pending KI-EIS relief claim: Emma invests £50,000 → 30% = £15,000 relief.
+INSERT INTO tax_relief_claims (user_id, campaign_id, scheme_code, invested_amount, relief_amount, tax_year, status)
+VALUES ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-0000000000bc','uk_ki_eis',50000,15000,'2026/27','pending');

@@ -17,6 +17,7 @@ import { PlatformModule } from './platform/platform.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { ReputationModule } from './reputation/reputation.module';
 import { SecondaryModule } from './secondary/secondary.module';
+import { TaxReliefModule } from './tax-relief/tax-relief.module';
 import { UniversityModule } from './university/university.module';
 import { UsersModule } from './users/users.module';
 
@@ -42,6 +43,7 @@ import { UsersModule } from './users/users.module';
     ReputationModule,
     GovernanceModule,
     AlertsModule,
+    TaxReliefModule,
   ],
 })
 export class AppModule {}

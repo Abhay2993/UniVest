@@ -403,5 +403,34 @@ BEGIN
     END;
     ASSERT v_blocked, 'zero-weight vote was not rejected';
 
+    ------------------------------------------------------------------
+    -- 18. Tax-advantaged schemes: relief params, assurance, claim integrity
+    ------------------------------------------------------------------
+    SELECT COUNT(*) INTO v_raised FROM tax_schemes;
+    ASSERT v_raised = 6, 'expected 6 tax schemes, got ' || COALESCE(v_raised::text, 'NULL');
+
+    SELECT income_relief_pct INTO v_raised FROM tax_schemes WHERE code = 'uk_seis';
+    ASSERT v_raised = 50, 'SEIS income relief pct wrong: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- The UK campaign carries two schemes (KI-EIS + SEIS); Helion carries QSBS.
+    SELECT COUNT(*) INTO v_raised FROM campaign_tax_schemes
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000bc';
+    ASSERT v_raised = 2, 'UK campaign should carry 2 schemes, got ' || COALESCE(v_raised::text, 'NULL');
+
+    -- Seeded KI-EIS claim: £50k @ 30% = £15k relief.
+    SELECT relief_amount INTO v_raised FROM tax_relief_claims
+     WHERE user_id = '00000000-0000-0000-0000-000000000007' AND scheme_code = 'uk_ki_eis';
+    ASSERT v_raised = 15000, 'KI-EIS relief amount wrong: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- A claim whose relief exceeds the investment is rejected by the CHECK.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO tax_relief_claims (user_id, campaign_id, scheme_code, invested_amount, relief_amount, tax_year)
+        VALUES ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-0000000000bc','uk_ki_eis',1000,2000,'2026/27');
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'relief exceeding the investment was not rejected';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

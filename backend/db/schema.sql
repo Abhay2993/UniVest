@@ -1012,6 +1012,55 @@ CREATE TABLE alert_preferences (
 );
 
 -- ----------------------------------------------------------------------------
+-- Tax-advantaged scheme wrappers (the spinout-investing monetization unlock)
+-- Deep-tech spinout investing is driven by tax relief: UK EIS/SEIS (and the
+-- knowledge-intensive EIS variant tuned for deep tech), Australia's ESIC, US
+-- QSBS (a capital-gains exemption), France's IR-PME. A scheme carries the relief
+-- parameters; a campaign can hold advance assurance for one or more schemes; an
+-- investor's relief claim (their certificate) is computed against the scheme and
+-- their remaining annual cap, and issued once the raise closes. Which scheme
+-- applies is decided by the investor's tax residency ∩ the campaign's schemes.
+-- ----------------------------------------------------------------------------
+CREATE TABLE tax_schemes (
+    code              TEXT PRIMARY KEY,                       -- 'uk_seis', 'us_qsbs', ...
+    name              TEXT         NOT NULL,                  -- 'UK SEIS'
+    jurisdiction      CHAR(2)      NOT NULL,                  -- investor tax residency it applies to
+    income_relief_pct NUMERIC(5,2) NOT NULL DEFAULT 0,        -- upfront income-tax relief
+    annual_cap        NUMERIC(18,2),                          -- per-investor annual cap (NULL = none)
+    cap_currency      CHAR(3)      NOT NULL DEFAULT 'GBP',
+    min_hold_months   SMALLINT     NOT NULL DEFAULT 36,
+    cgt_exempt        BOOLEAN      NOT NULL DEFAULT FALSE,     -- gains exempt after the hold
+    loss_relief       BOOLEAN      NOT NULL DEFAULT FALSE,
+    certificate_kind  TEXT         NOT NULL,                  -- 'SEIS3', 'EIS3', 'ESIC statement', ...
+    notes             TEXT
+);
+
+-- Which schemes a campaign has advance assurance for.
+CREATE TABLE campaign_tax_schemes (
+    campaign_id           UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    scheme_code           TEXT NOT NULL REFERENCES tax_schemes(code),
+    advance_assurance_ref TEXT,                               -- HMRC/ATO/IRS assurance reference
+    scheme_cap            NUMERIC(18,2),                      -- max raise under this scheme
+    PRIMARY KEY (campaign_id, scheme_code)
+);
+
+-- An investor's relief claim / certificate for an investment under a scheme.
+CREATE TABLE tax_relief_claims (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    campaign_id     UUID          NOT NULL REFERENCES campaigns(id),
+    scheme_code     TEXT          NOT NULL REFERENCES tax_schemes(code),
+    invested_amount NUMERIC(18,2) NOT NULL CHECK (invested_amount > 0),
+    relief_amount   NUMERIC(18,2) NOT NULL CHECK (relief_amount >= 0),
+    tax_year        TEXT          NOT NULL,                   -- '2025/26'
+    status          TEXT          NOT NULL DEFAULT 'pending', -- 'pending' | 'issued'
+    certificate_ref TEXT,
+    issued_at       TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    CHECK (relief_amount <= invested_amount)
+);
+
+-- ----------------------------------------------------------------------------
 -- Diligence Copilot (data room + grounded Q&A)
 -- ----------------------------------------------------------------------------
 CREATE TABLE data_room_documents (
@@ -1360,6 +1409,12 @@ CREATE POLICY alert_prefs_own ON alert_preferences
     USING (user_id = app_user_id() OR app_is_admin())
     WITH CHECK (user_id = app_user_id() OR app_is_admin());
 
+-- Tax relief claims (certificates) are private to the investor.
+ALTER TABLE tax_relief_claims ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tax_relief_own ON tax_relief_claims
+    USING (user_id = app_user_id() OR app_is_admin())
+    WITH CHECK (user_id = app_user_id() OR app_is_admin());
+
 -- Public catalog tables (universities, startups, campaigns, milestones,
 -- syndicates) intentionally have no RLS: they are read-mostly marketing data;
 -- writes are restricted at the API layer to TTO/admin roles.
@@ -1392,6 +1447,8 @@ CREATE INDEX idx_follows_follower      ON follows (follower_id);
 CREATE INDEX idx_endorse_subject       ON endorsements (subject_kind, subject_id);
 CREATE INDEX idx_gov_proposals_spv     ON governance_proposals (spv_id, status, closes_at DESC);
 CREATE INDEX idx_gov_votes_proposal    ON governance_votes (proposal_id);
+CREATE INDEX idx_campaign_schemes      ON campaign_tax_schemes (campaign_id);
+CREATE INDEX idx_relief_claims_user    ON tax_relief_claims (user_id, created_at DESC);
 CREATE INDEX idx_copilot_user          ON copilot_exchanges (user_id, created_at DESC);
 CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcome IS NOT NULL;
 CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);

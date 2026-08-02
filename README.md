@@ -163,6 +163,22 @@ framework.
   CHECKs) with three DB assertions. The mobile tabs are powered by the pure,
   unit-tested [`portfolio-analytics.ts`](mobile/src/utils/portfolio-analytics.ts)
   (6 tests) and the existing `xirr`/`tvpi` helpers.
+- **Tax-advantaged scheme wrappers** — the monetization unlock for spinout
+  investing, which is *driven* by tax relief. Models **UK EIS / SEIS / KI-EIS**
+  (the knowledge-intensive variant tuned for deep-tech), **AU ESIC**, **US QSBS**
+  (§1202 capital-gains exclusion), and **FR IR-PME**. A campaign carries advance
+  assurance for one or more schemes; the applicable scheme is resolved from the
+  **investor's tax residency ∩ the deal's schemes**; relief is computed against
+  the scheme rate and the investor's **remaining annual cap** (prior-year claims
+  tracked), and a certificate (EIS3/SEIS3/…) is issued once the raise closes.
+  Backend `GET /api/v1/tax-relief/schemes`, `GET /tax-relief/campaigns/:id/eligibility`,
+  `POST /tax-relief/estimate` + `/claim`, `GET /tax-relief/claims` (RLS
+  `tax_relief_own`), `POST /tax-relief/claims/:id/issue` (admin). The deal page's
+  **Tax Relief** card shows the headline rate, a worked example, the hold period,
+  and CGT/loss-relief flags. Shared pure math in
+  [`tax-relief.util.ts`](backend/api/src/tax-relief/tax-relief.util.ts) /
+  [`mobile/src/utils/tax-relief.ts`](mobile/src/utils/tax-relief.ts)
+  (`tax_schemes` / `campaign_tax_schemes` / `tax_relief_claims`).
 - **Batch-auction liquidity windows** — monthly uniform-price auctions
   replace the thin continuous book; the `clear_auction()` SQL function and
   its TypeScript mirror pick the volume-maximizing price (plateau midpoint)
@@ -460,10 +476,13 @@ false-precision point estimates.
   reputation trust-score formula (verification weighting, slip penalty, bands).
 - `backend/api/test/governance.spec.mjs` — standalone assertions for the
   governance tally (weighted turnout, quorum, and the pass/reject outcome).
+- `backend/api/test/tax-relief.spec.mjs` — standalone assertions for the
+  tax-relief math (scheme rate, annual-cap clipping, prior claims, tax-year
+  boundaries, best-scheme selection).
 - `.github/workflows/ci.yml` — on every push: mobile typecheck + tests + web
   bundle + companion build; backend build + VC-crypto + copilot-retrieval +
-  escrow + reputation + governance specs; schema + seed + assertions against a
-  real PostgreSQL 16 service.
+  escrow + reputation + governance + tax-relief specs; schema + seed + assertions
+  against a real PostgreSQL 16 service.
 - `mobile/.maestro/invest-happy-path.yaml` — device E2E scaffold
   (onboarding → quiz → invest → sign → cooling-off) for local/device-farm runs.
 
@@ -497,6 +516,9 @@ cd backend/api && npm install && npm run build && npm start
 # POST /api/v1/governance/proposals/:id/vote · cast a units-weighted vote (holders, RLS)
 # POST /api/v1/governance/proposals/:id/close · finalize outcome by quorum + majority (admin)
 # GET  /api/v1/alerts/feed · PUT /alerts/preferences · holdings-scoped alerts + category prefs (RLS)
+# GET  /api/v1/tax-relief/schemes · /campaigns/:id/eligibility · EIS/SEIS/QSBS/ESIC schemes + eligibility
+# POST /api/v1/tax-relief/estimate · /claim · relief estimate + record a claim (residency ∩ deal, annual cap)
+# POST /api/v1/tax-relief/claims/:id/issue · issue the relief certificate (admin, RLS-scoped claims)
 # GET  /api/v1/auctions/active              · window + indicative clearing price
 # POST /api/v1/auctions/:id/orders          · place bid/offer
 # POST /api/v1/auctions/:id/clear           · run the uniform-price engine

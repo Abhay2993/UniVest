@@ -67,6 +67,8 @@ jobs:
         run: node test/reputation.spec.mjs
       - name: Governance tally (weighted votes + quorum + outcome)
         run: node test/governance.spec.mjs
+      - name: Tax relief (scheme relief + annual cap + tax year)
+        run: node test/tax-relief.spec.mjs
 
   database:
     name: Database — schema, seed, assertions

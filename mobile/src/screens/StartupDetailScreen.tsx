@@ -19,6 +19,7 @@ import {
 } from '../components/ScientificDiligenceCards';
 import { ScienceMonitorCard } from '../components/ScienceMonitorCard';
 import { ScienceRiskCard } from '../components/ScienceRiskCard';
+import { TaxReliefCard } from '../components/TaxReliefCard';
 import { TrustProfileCard } from '../components/TrustProfileCard';
 import { ValuationDistribution } from '../components/ValuationDistribution';
 import { VerifiedBadge } from '../components/VerifiedBadge';
@@ -122,6 +123,11 @@ export function StartupDetailScreen({ startup, onBack }: Props) {
         {/* Founder trust profile — reputation & social layer */}
         <View style={s.trackerWrap}>
           <TrustProfileCard startup={startup} />
+        </View>
+
+        {/* Tax-advantaged scheme eligibility (EIS/SEIS/QSBS/ESIC) */}
+        <View style={s.trackerWrap}>
+          <TaxReliefCard startup={startup} />
         </View>
 
         {/* Diligence Copilot — grounded Q&A over the data room */}
