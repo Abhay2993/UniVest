@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { INDEX_BY_VERTICAL } from '../data/outcomes';
+import { STARTUPS } from '../data/mock';
+import { IndexInvestCard } from '../components/IndexInvestCard';
 import { compositeIndex, indexReturn, IndexPoint } from '../utils/calibration';
 import { Vertical } from '../types';
 import { font, Palette, radius, space, tabularNums, typeStyles } from '../theme/tokens';
@@ -79,6 +81,9 @@ export function DeepTechIndexScreen({ onClose }: Props) {
             />
           </View>
         </View>
+
+        {/* The benchmark's investable counterpart — auto-invest across constituents */}
+        <IndexInvestCard startups={STARTUPS} />
 
         <View style={s.card}>
           <Text style={s.overline}>Select Index</Text>

@@ -432,5 +432,43 @@ BEGIN
     END;
     ASSERT v_blocked, 'relief exceeding the investment was not rejected';
 
+    ------------------------------------------------------------------
+    -- 19. Investable index: diligence bar, mandate CHECKs, allocation dedupe
+    ------------------------------------------------------------------
+    -- Helion has one completed + attested milestone (the diligence bar signal).
+    SELECT attested_count INTO v_raised FROM campaign_attested_milestones
+     WHERE campaign_id = '00000000-0000-0000-0000-0000000000ac';
+    ASSERT v_raised = 1, 'Helion attested-milestone count wrong: ' || COALESCE(v_raised::text, 'NULL');
+
+    -- USD live deals clearing the >=1 attested bar = Helion + Aeon + Cortex.
+    SELECT COUNT(*) INTO v_raised
+      FROM campaigns c JOIN campaign_attested_milestones am ON am.campaign_id = c.id
+     WHERE c.status = 'live' AND c.currency_code = 'USD' AND am.attested_count >= 1;
+    ASSERT v_raised = 3, 'expected 3 USD index constituents, got ' || COALESCE(v_raised::text, 'NULL');
+
+    -- A per-deal cap outside (0,100] is rejected by the CHECK.
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO index_mandates (user_id, budget_amount, max_per_deal_pct)
+        VALUES ('00000000-0000-0000-0000-000000000001', 1000, 150);
+    EXCEPTION WHEN check_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'out-of-range max_per_deal_pct was not rejected';
+
+    -- A period's run is idempotent: a duplicate allocation is rejected by UNIQUE.
+    INSERT INTO index_allocations (mandate_id, user_id, campaign_id, amount, period)
+    VALUES ('00000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-000000000001',
+            '00000000-0000-0000-0000-0000000000ac',20000,'2026-Q3');
+    v_blocked := FALSE;
+    BEGIN
+        INSERT INTO index_allocations (mandate_id, user_id, campaign_id, amount, period)
+        VALUES ('00000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-000000000001',
+                '00000000-0000-0000-0000-0000000000ac',20000,'2026-Q3');
+    EXCEPTION WHEN unique_violation THEN
+        v_blocked := TRUE;
+    END;
+    ASSERT v_blocked, 'duplicate allocation for the same period was not rejected';
+
     RAISE NOTICE 'ALL DATABASE ASSERTIONS PASSED';
 END $$;

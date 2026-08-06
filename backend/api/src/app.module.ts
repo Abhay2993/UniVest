@@ -9,6 +9,7 @@ import { CredentialsModule } from './credentials/credentials.module';
 import { DiligenceModule } from './diligence/diligence.module';
 import { EscrowModule } from './escrow/escrow.module';
 import { GovernanceModule } from './governance/governance.module';
+import { IndexFundModule } from './index-fund/index.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { ModelsModule } from './models/models.module';
 import { OfferingsModule } from './offerings/offerings.module';
@@ -44,6 +45,7 @@ import { UsersModule } from './users/users.module';
     GovernanceModule,
     AlertsModule,
     TaxReliefModule,
+    IndexFundModule,
   ],
 })
 export class AppModule {}

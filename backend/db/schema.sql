@@ -1061,6 +1061,56 @@ CREATE TABLE tax_relief_claims (
 );
 
 -- ----------------------------------------------------------------------------
+-- Investable Deep-Tech Index (retail auto-invest / rolling fund)
+-- The benchmark index has an investable counterpart: a mandate commits a budget
+-- (one-off, or per-quarter as a rolling fund) that the platform spreads across
+-- the qualifying live deals — filtered by vertical and a diligence bar (minimum
+-- independently-attested milestones), and capped per deal. Each deployment is
+-- recorded as an allocation. The composition is decided at run time from the
+-- live catalog, so the index self-updates as deals qualify.
+-- ----------------------------------------------------------------------------
+CREATE TYPE index_cadence        AS ENUM ('once', 'quarterly');
+CREATE TYPE index_mandate_status AS ENUM ('active', 'paused', 'completed');
+
+CREATE TABLE index_mandates (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id                 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    budget_amount           NUMERIC(18,2) NOT NULL CHECK (budget_amount > 0),
+    currency_code           CHAR(3)       NOT NULL DEFAULT 'USD',
+    cadence                 index_cadence NOT NULL DEFAULT 'once',
+    verticals               TEXT[]        NOT NULL DEFAULT '{}',   -- empty = all verticals
+    min_attested_milestones SMALLINT      NOT NULL DEFAULT 1 CHECK (min_attested_milestones >= 0),
+    max_per_deal_pct        NUMERIC(5,2)  NOT NULL DEFAULT 25.00
+                            CHECK (max_per_deal_pct > 0 AND max_per_deal_pct <= 100),
+    status                  index_mandate_status NOT NULL DEFAULT 'active',
+    next_run_at             TIMESTAMPTZ,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- One deployment of a mandate into a deal, for a period. UNIQUE keeps a period's
+-- run idempotent (re-running the same quarter cannot double-allocate).
+CREATE TABLE index_allocations (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    mandate_id  UUID NOT NULL REFERENCES index_mandates(id) ON DELETE CASCADE,
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    campaign_id UUID NOT NULL REFERENCES campaigns(id),
+    amount      NUMERIC(18,2) NOT NULL CHECK (amount > 0),
+    period      TEXT NOT NULL,                                     -- '2026-Q3' | 'once'
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (mandate_id, campaign_id, period)
+);
+
+-- Count of a campaign's completed + independently-attested milestones — the
+-- diligence bar the index filters on.
+CREATE VIEW campaign_attested_milestones AS
+SELECT c.id AS campaign_id,
+       COUNT(DISTINCT a.milestone_id) AS attested_count
+  FROM campaigns c
+  JOIN milestones m           ON m.startup_id = c.startup_id AND m.status = 'completed'
+  JOIN milestone_attestations a ON a.milestone_id = m.id
+ GROUP BY c.id;
+
+-- ----------------------------------------------------------------------------
 -- Diligence Copilot (data room + grounded Q&A)
 -- ----------------------------------------------------------------------------
 CREATE TABLE data_room_documents (
@@ -1415,6 +1465,17 @@ CREATE POLICY tax_relief_own ON tax_relief_claims
     USING (user_id = app_user_id() OR app_is_admin())
     WITH CHECK (user_id = app_user_id() OR app_is_admin());
 
+-- Index auto-invest mandates and their allocations are private to the investor.
+ALTER TABLE index_mandates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY index_mandates_own ON index_mandates
+    USING (user_id = app_user_id() OR app_is_admin())
+    WITH CHECK (user_id = app_user_id() OR app_is_admin());
+
+ALTER TABLE index_allocations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY index_allocations_own ON index_allocations
+    USING (user_id = app_user_id() OR app_is_admin())
+    WITH CHECK (user_id = app_user_id() OR app_is_admin());
+
 -- Public catalog tables (universities, startups, campaigns, milestones,
 -- syndicates) intentionally have no RLS: they are read-mostly marketing data;
 -- writes are restricted at the API layer to TTO/admin roles.
@@ -1449,6 +1510,8 @@ CREATE INDEX idx_gov_proposals_spv     ON governance_proposals (spv_id, status, 
 CREATE INDEX idx_gov_votes_proposal    ON governance_votes (proposal_id);
 CREATE INDEX idx_campaign_schemes      ON campaign_tax_schemes (campaign_id);
 CREATE INDEX idx_relief_claims_user    ON tax_relief_claims (user_id, created_at DESC);
+CREATE INDEX idx_index_mandates_user   ON index_mandates (user_id, status);
+CREATE INDEX idx_index_alloc_mandate   ON index_allocations (mandate_id, period);
 CREATE INDEX idx_copilot_user          ON copilot_exchanges (user_id, created_at DESC);
 CREATE INDEX idx_predictions_model     ON model_predictions (model) WHERE outcome IS NOT NULL;
 CREATE INDEX idx_predictions_subject   ON model_predictions (subject_kind, subject_id);

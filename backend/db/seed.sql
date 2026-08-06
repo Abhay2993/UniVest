@@ -377,3 +377,43 @@ ON CONFLICT DO NOTHING;
 -- A pending KI-EIS relief claim: Emma invests £50,000 → 30% = £15,000 relief.
 INSERT INTO tax_relief_claims (user_id, campaign_id, scheme_code, invested_amount, relief_amount, tax_year, status)
 VALUES ('00000000-0000-0000-0000-000000000007','00000000-0000-0000-0000-0000000000bc','uk_ki_eis',50000,15000,'2026/27','pending');
+
+-- ----------------------------------------------------------------------------
+-- Two more US live deep-tech deals (MIT), each with an attested milestone, so the
+-- USD Deep-Tech Index has multiple constituents for an auto-invest to spread over.
+-- ----------------------------------------------------------------------------
+INSERT INTO startups (id, university_id, name, slug, vertical, tagline, founder_user_id,
+                      pitch_plain_english, pitch_commercialization, pitch_lab_proof, pitch_generated_at)
+VALUES
+  ('00000000-0000-0000-0000-0000000000ca','00000000-0000-0000-0000-0000000000aa','Aeon Materials','aeon-materials','Advanced Materials',
+   'Solid-state electrolytes for non-flammable grid-scale batteries.',NULL,NULL,NULL,NULL,NULL),
+  ('00000000-0000-0000-0000-0000000000cd','00000000-0000-0000-0000-0000000000aa','Cortex Systems','cortex-systems','AI & Robotics',
+   'On-device perception chips for autonomous inspection robots.',NULL,NULL,NULL,NULL,NULL)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO campaigns (id, startup_id, status, template, university_equity_pct, target_amount,
+                       raised_amount, min_investment, max_investment, price_per_unit, currency_code, opens_at, closes_at)
+VALUES
+  ('00000000-0000-0000-0000-0000000000cb','00000000-0000-0000-0000-0000000000ca','live','usit',10.00,2000000,0,100,5000,10.00,'USD',now() - interval '15 days', now() + interval '30 days'),
+  ('00000000-0000-0000-0000-0000000000ce','00000000-0000-0000-0000-0000000000cd','live','usit',11.00,1800000,0,100,5000,10.00,'USD',now() - interval '10 days', now() + interval '35 days')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO milestones (id, startup_id, campaign_id, position, title, description, status, completed_at)
+VALUES
+  ('00000000-0000-0000-0000-0000000000cc','00000000-0000-0000-0000-0000000000ca','00000000-0000-0000-0000-0000000000cb',1,
+   'Cell Chemistry Validation','1,000-cycle solid-state cell at 4.2V, independently tested.','completed', now() - interval '90 days'),
+  ('00000000-0000-0000-0000-0000000000cf','00000000-0000-0000-0000-0000000000cd','00000000-0000-0000-0000-0000000000ce',1,
+   'Perception SoC Tape-Out','First silicon returned from the foundry; bring-up passed.','completed', now() - interval '70 days')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO milestone_attestations (milestone_id, attestor_name, attestor_org, attestor_role, key_id, evidence_hash, signature)
+VALUES
+  ('00000000-0000-0000-0000-0000000000cc','K. Brennan','MIT Technology Licensing Office','tto','mit-tlo-2026',decode('a1','hex'),decode('a2','hex')),
+  ('00000000-0000-0000-0000-0000000000cf','K. Brennan','MIT Technology Licensing Office','tto','mit-tlo-2026',decode('b1','hex'),decode('b2','hex'))
+ON CONFLICT DO NOTHING;
+
+-- An index auto-invest mandate for Alice: $50k across USD deep-tech deals with
+-- >=1 attested milestone, max 40% per deal, deployed quarterly (rolling fund).
+INSERT INTO index_mandates (id, user_id, budget_amount, currency_code, cadence, verticals, min_attested_milestones, max_per_deal_pct, status)
+VALUES ('00000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-000000000001',50000,'USD','quarterly','{}',1,40.00,'active')
+ON CONFLICT DO NOTHING;

@@ -179,6 +179,23 @@ framework.
   [`tax-relief.util.ts`](backend/api/src/tax-relief/tax-relief.util.ts) /
   [`mobile/src/utils/tax-relief.ts`](mobile/src/utils/tax-relief.ts)
   (`tax_schemes` / `campaign_tax_schemes` / `tax_relief_claims`).
+- **Investable Deep-Tech Index (auto-invest / rolling fund)** — the benchmark
+  index's investable counterpart, for recurring diversified capital. A mandate
+  commits a budget (one-off, or per-quarter as a rolling fund) that is spread
+  across the **qualifying live deals** — filtered by vertical and a **diligence
+  bar (minimum independently-attested milestones)** and **capped per deal** — by a
+  water-filling allocator; whatever can't be placed is reported as undeployed. The
+  composition self-updates from the live catalog as deals clear the bar. Backend
+  `GET /api/v1/index/composition` (constituents for a filter set),
+  `GET/POST /index/mandates`, `POST /index/mandates/:id/preview` (dry-run) and
+  `/run` (idempotent per period via a UNIQUE, advancing the cadence),
+  `GET /index/mandates/:id/allocations`, `POST /index/mandates/:id/pause` — all
+  RLS-scoped (`index_mandates_own` / `index_allocations_own`). The Deep-Tech Index
+  screen gains an **Invest in the Index** card: pick budget / cadence / diligence
+  bar and see the allocation preview live. Shared pure allocator in
+  [`index.util.ts`](backend/api/src/index-fund/index.util.ts) /
+  [`mobile/src/utils/index-fund.ts`](mobile/src/utils/index-fund.ts)
+  (`index_mandates` / `index_allocations` / `campaign_attested_milestones`).
 - **Batch-auction liquidity windows** — monthly uniform-price auctions
   replace the thin continuous book; the `clear_auction()` SQL function and
   its TypeScript mirror pick the volume-maximizing price (plateau midpoint)
@@ -479,10 +496,13 @@ false-precision point estimates.
 - `backend/api/test/tax-relief.spec.mjs` — standalone assertions for the
   tax-relief math (scheme rate, annual-cap clipping, prior claims, tax-year
   boundaries, best-scheme selection).
+- `backend/api/test/index.spec.mjs` — standalone assertions for the index
+  auto-invest allocator (even split, per-deal caps, capacity limits + undeployed
+  remainder, quarter/next-run helpers).
 - `.github/workflows/ci.yml` — on every push: mobile typecheck + tests + web
   bundle + companion build; backend build + VC-crypto + copilot-retrieval +
-  escrow + reputation + governance + tax-relief specs; schema + seed + assertions
-  against a real PostgreSQL 16 service.
+  escrow + reputation + governance + tax-relief + index specs; schema + seed +
+  assertions against a real PostgreSQL 16 service.
 - `mobile/.maestro/invest-happy-path.yaml` — device E2E scaffold
   (onboarding → quiz → invest → sign → cooling-off) for local/device-farm runs.
 
@@ -519,6 +539,8 @@ cd backend/api && npm install && npm run build && npm start
 # GET  /api/v1/tax-relief/schemes · /campaigns/:id/eligibility · EIS/SEIS/QSBS/ESIC schemes + eligibility
 # POST /api/v1/tax-relief/estimate · /claim · relief estimate + record a claim (residency ∩ deal, annual cap)
 # POST /api/v1/tax-relief/claims/:id/issue · issue the relief certificate (admin, RLS-scoped claims)
+# GET  /api/v1/index/composition           · Deep-Tech Index constituents (diligence bar + vertical filter)
+# POST /api/v1/index/mandates · /:id/preview · /:id/run · auto-invest mandate + water-fill allocation (RLS)
 # GET  /api/v1/auctions/active              · window + indicative clearing price
 # POST /api/v1/auctions/:id/orders          · place bid/offer
 # POST /api/v1/auctions/:id/clear           · run the uniform-price engine
